@@ -1,0 +1,10 @@
+/vendor/
+/storage/*
+!storage/.gitignore
+.env
+config.php
+.DS_Store
+.idea/
+.vscode/
+*.log
+composer.lock 
