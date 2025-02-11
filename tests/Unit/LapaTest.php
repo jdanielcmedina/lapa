@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Lapa;
+use Lapa\Lapa;
 
 class LapaTest extends TestCase
 {
