@@ -6,5 +6,6 @@ config.php
 .DS_Store
 .idea/
 .vscode/
+.cursor/
 *.log
 composer.lock 
