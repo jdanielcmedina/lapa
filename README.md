@@ -3,8 +3,6 @@
 A minimalist PHP framework for building REST APIs and web applications.
 
 [![Tests](https://github.com/jdanielcmedina/lapa/actions/workflows/tests.yml/badge.svg)](https://github.com/jdanielcmedina/lapa/actions)
-[![Latest Version](https://img.shields.io/packagist/v/jdanielcmedina/lapa.svg)](https://packagist.org/packages/jdanielcmedina/lapa)
-[![PHP Version](https://img.shields.io/packagist/php-v/jdanielcmedina/lapa.svg)](https://packagist.org/packages/jdanielcmedina/lapa)
 [![License](https://img.shields.io/github/license/jdanielcmedina/lapa.svg)](LICENSE)
 
 ## Requirements
@@ -15,19 +13,29 @@ A minimalist PHP framework for building REST APIs and web applications.
 
 ## Quick Start
 
-1. Create a new project:
+1. Clone the repository:
 ```bash
-composer create-project jdanielcmedina/lapa my-app
+git clone https://github.com/jdanielcmedina/lapa.git my-app
 ```
 
-2. Copy configuration file:
+2. Enter the project directory:
+```bash
+cd my-app
+```
+
+3. Install dependencies:
+```bash
+composer install
+```
+
+4. Copy configuration file:
 ```bash
 cp config.example.php config.php
 ```
 
-3. Configure your database and other settings in `config.php`
+5. Configure your database and other settings in `config.php`
 
-4. Start development server:
+6. Start development server:
 ```bash
 php -S localhost:8000 -t public
 ```
