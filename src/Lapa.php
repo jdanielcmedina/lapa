@@ -1,4 +1,6 @@
 <?php
+namespace Lapa;
+
 /**
  * Lapa Framework
  * A minimalist PHP framework for building REST APIs and web applications
@@ -103,14 +105,18 @@ class Lapa {
     /**
      * Initialize the framework
      */
-    public function __construct() {
+    public function __construct($testConfig = null) {
         try {
             // Load configuration
-            $configFile = dirname($_SERVER['SCRIPT_FILENAME']) . '/config.php';
-            if (!file_exists($configFile)) {
-                throw new \Exception('Configuration file not found');
+            if ($testConfig) {
+                $this->config = $testConfig;
+            } else {
+                $configFile = dirname($_SERVER['SCRIPT_FILENAME']) . '/config.php';
+                if (!file_exists($configFile)) {
+                    throw new \Exception('Configuration file not found');
+                }
+                $this->config = require $configFile;
             }
-            $this->config = require $configFile;
             
             // Initialize database if configured
             if (isset($this->config['db'])) {
@@ -155,8 +161,10 @@ class Lapa {
                 }
             }
             
-            // Register router
-            register_shutdown_function([$this, 'handleRequest']);
+            // Register router (skip in test mode)
+            if (!$testConfig) {
+                register_shutdown_function([$this, 'handleRequest']);
+            }
         } catch (\Throwable $e) {
             $this->log("Initialization failed: " . $e->getMessage(), 'error');
             if ($this->config['debug'] ?? false) {
@@ -1342,5 +1350,15 @@ class Lapa {
         }
 
         return $this;
+    }
+
+    /**
+     * Get registered routes (for testing)
+     *
+     * @return array
+     */
+    public function getRoutes()
+    {
+        return $this->routes;
     }
 } 

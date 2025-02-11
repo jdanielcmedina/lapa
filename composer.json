@@ -18,6 +18,9 @@
         "phpunit/phpunit": "^9.0"
     },
     "autoload": {
+        "classmap": [
+            "src/"
+        ],
         "psr-4": {
             "Lapa\\": "src/"
         }

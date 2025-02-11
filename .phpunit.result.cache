@@ -1,1 +1,1 @@
-{"version":1,"defects":{"Tests\\Unit\\LapaTest::test_lapa_can_be_instantiated":4},"times":{"Tests\\Unit\\LapaTest::test_lapa_can_be_instantiated":0.001}}
+{"version":1,"defects":{"Tests\\Unit\\LapaTest::test_lapa_can_be_instantiated":4},"times":{"Tests\\Unit\\LapaTest::test_lapa_can_be_instantiated":0.002,"Tests\\Unit\\LapaTest::test_can_register_route":0}}
