@@ -147,6 +147,8 @@ class Lapa {
             if (isset($this->config['mail'])) {
                 $this->mailer = new \PHPMailer\PHPMailer\PHPMailer(true);
             }
+// Load helper functions
+            $this->loadHelpers();
 
             // Auto-load routes
             $routesPath = dirname($_SERVER['SCRIPT_FILENAME']) . '/routes';
@@ -172,6 +174,26 @@ class Lapa {
             }
             $this->error('Internal server error', 500);
             exit;
+        }
+    }
+
+    /**
+    * Load helper functions if the file exists
+    */
+    private function loadHelpers() {
+        $helpersFile = __DIR__ . '/helpers.php';
+        if (file_exists($helpersFile)) {
+            require_once $helpersFile;
+
+            // Adicionar funções do helpers.php como métodos da classe Lapa
+            $definedFunctions = get_defined_functions()['user'];
+            foreach ($definedFunctions as $function) {
+                if (!method_exists($this, $function)) {
+                    $this->{$function} = \Closure::bind($function, $this, get_class($this));
+                } else {
+                    $this->log("Função duplicada encontrada: $function", 'warning');
+                }
+            }
         }
     }
 
