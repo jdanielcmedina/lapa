@@ -163,7 +163,7 @@ class Lapa {
             'cache' => 'storage/cache',
             'temp' => 'storage/temp',
             'uploads' => 'storage/uploads',
-            'views' => 'resources/views'
+            'views' => 'views'  // Mudado de resources/views para views
         ];
 
         $this->storagePermissions = $this->config['storage']['permissions'] ?? [
@@ -428,8 +428,19 @@ class Lapa {
 
         http_response_code($this->statusCode);
 
+        // Add .php extension if not provided
+        if (!pathinfo($file, PATHINFO_EXTENSION)) {
+            $file .= '.php';
+        }
+
+        // Check if absolute path or relative to views directory
+        $viewPath = $file;
+        if (!file_exists($viewPath)) {
+            $viewPath = $this->storage('views') . '/' . ltrim($file, '/');
+        }
+
         // Check if file exists
-        if (!file_exists($file)) {
+        if (!file_exists($viewPath)) {
             throw new \Exception("View not found: {$file}");
         }
 
@@ -440,7 +451,7 @@ class Lapa {
         ob_start();
 
         try {
-            include $file;
+            include $viewPath;
             $content = ob_get_clean();
             
             echo $content;
@@ -451,6 +462,29 @@ class Lapa {
             ob_end_clean();
             throw $e;
         }
+    }
+
+    /**
+     * Load a partial view
+     * 
+     * @param string $name Partial name
+     * @param array $data Data to pass to partial
+     * @return void
+     */
+    public function partial($name, $data = []) {
+        // Add .php extension if not provided
+        if (!pathinfo($name, PATHINFO_EXTENSION)) {
+            $name .= '.php';
+        }
+
+        $partialPath = $this->storage('views') . '/partials/' . ltrim($name, '/');
+        
+        if (!file_exists($partialPath)) {
+            throw new \Exception("Partial not found: {$name}");
+        }
+
+        extract($data);
+        include $partialPath;
     }
 
     /**
@@ -1244,7 +1278,10 @@ class Lapa {
      * @param string $routesPath Path to routes directory
      * @return self
      */
-    public function loadRoutes($routesPath = 'routes') {
+    public function loadRoutes($routesPath = null) {
+        // Default routes path is in project root
+        $routesPath = $routesPath ?? dirname(__DIR__) . '/routes';
+        
         if (!is_dir($routesPath)) {
             $this->log("Routes directory not found: $routesPath", "warning");
             return $this;

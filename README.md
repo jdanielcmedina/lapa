@@ -1,6 +1,6 @@
 # Lapa Framework
 
-A minimalist PHP framework for building REST APIs and web applications with a focus on simplicity and flexibility.
+A minimalist PHP framework for building REST APIs and web applications.
 
 ## Features
 
@@ -20,13 +20,13 @@ A minimalist PHP framework for building REST APIs and web applications with a fo
 - 📦 Database support (via Medoo)
 - 📧 Mailer support (via PHPMailer)
 
-## Installation
+### Installation
 
 ```bash
 composer require jdanielcmedina/lapa
 ```
 
-## Quick Start
+### Quick Start
 
 ```php
 require 'vendor/autoload.php';
@@ -58,9 +58,9 @@ $app->on('POST /users', function() {
 });
 ```
 
-## Documentation
+### Documentation
 
-### Request Handling
+#### Request Handling
 
 ```php
 // GET parameters
@@ -80,7 +80,7 @@ $json = $this->body();                   // Full body
 $field = $this->body('field');           // Specific field
 ```
 
-### Response Methods
+#### Response Methods
 
 ```php
 // Success responses
@@ -98,7 +98,7 @@ return $this->response($text, 'text');           // Plain text
 return $this->response($xml, 'xml');             // XML
 ```
 
-### Authentication & Protection
+#### Authentication & Protection
 
 ```php
 // Protect routes
@@ -118,7 +118,7 @@ $app->on('GET /admin', function() {
 });
 ```
 
-### Data Validation
+#### Data Validation
 
 ```php
 $validated = $this->validate([
@@ -129,7 +129,7 @@ $validated = $this->validate([
 ]);
 ```
 
-### Database Operations
+#### Database Operations
 
 ```php
 // Select
@@ -151,7 +151,7 @@ $this->db->update('users',
 $this->db->delete('users', ['id' => 1]);
 ```
 
-### File Management
+#### File Management
 
 ```php
 // Upload
@@ -165,7 +165,7 @@ $path = $this->storage('public');    // Get storage path
 $this->clear('cache');               // Clear storage
 ```
 
-### External API Integration
+#### External API Integration
 
 ```php
 // GET request
@@ -181,7 +181,7 @@ $result = $this->import('https://api.example.com/users', [
 ]);
 ```
 
-### Session & Cookies
+#### Session & Cookies
 
 ```php
 // Sessions
@@ -198,7 +198,7 @@ $theme = $this->cookie('theme');         // Get
 $this->cookie('theme', false);           // Remove
 ```
 
-## Configuration
+### Configuration
 
 Create `storage/app/private/config.php`:
 
@@ -224,7 +224,7 @@ return [
 ];
 ```
 
-## Directory Structure
+### Directory Structure
 
 ```
 lapa/
@@ -243,7 +243,116 @@ lapa/
     └── helpers.php
 ```
 
-## Requirements
+### Views
+
+#### Estrutura de Views
+O Lapa Framework possui um sistema modular de views, incluindo suporte a partials (componentes reutilizáveis).
+
+Estrutura recomendada:
+```bash
+views/
+├── partials/          # Componentes reutilizáveis
+│   ├── header.php     # Cabeçalho do site
+│   ├── footer.php     # Rodapé do site
+│   ├── sidebar.php    # Barra lateral
+│   └── nav.php        # Menu de navegação
+├── layouts/           # Layouts base
+│   └── default.php    # Layout padrão
+└── pages/            # Páginas do site
+    ├── home.php
+    └── about.php
+```
+
+#### Usando Partials
+Os partials são pequenos componentes reutilizáveis que podem ser incluídos em qualquer view:
+
+```php
+<!-- views/layouts/default.php -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title><?= $title ?></title>
+</head>
+<body>
+    <?php $this->partial('header', ['title' => $title]) ?>
+    
+    <div class="container">
+        <?php $this->partial('nav') ?>
+        
+        <main>
+            <?= $content ?>
+        </main>
+        
+        <?php $this->partial('sidebar', ['user' => $user]) ?>
+    </div>
+    
+    <?php $this->partial('footer') ?>
+</body>
+</html>
+
+<!-- views/pages/home.php -->
+<?php $this->partial('header', ['title' => 'Home']) ?>
+
+<div class="content">
+    <h1>Bem-vindo!</h1>
+    <p>Conteúdo da página...</p>
+</div>
+
+<?php $this->partial('footer') ?>
+```
+
+#### Passando Dados para Partials
+Cada partial pode receber seus próprios dados:
+
+```php
+// Na rota
+$app->view('pages/home', [
+    'title' => 'Home Page',
+    'user' => $user
+]);
+
+// No partial
+$this->partial('header', [
+    'title' => $title,
+    'showMenu' => true
+]);
+
+$this->partial('sidebar', [
+    'user' => $user,
+    'menuItems' => $items
+]);
+```
+
+#### Estrutura de Partials
+Os partials devem estar na pasta `views/partials/` e podem ser organizados em subpastas:
+
+```php
+<!-- views/partials/header.php -->
+<header>
+    <h1><?= $title ?></h1>
+    <?php if ($showMenu ?? false): ?>
+        <?php $this->partial('nav/main') ?>
+    <?php endif ?>
+</header>
+
+<!-- views/partials/nav/main.php -->
+<nav>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+    </ul>
+</nav>
+```
+
+#### Características dos Partials
+- Organização modular do código
+- Reutilização de componentes
+- Escopo isolado de variáveis
+- Suporte a subdiretórios
+- Passagem de dados específicos
+- Aninhamento de partials
+
+### Requirements
 
 - PHP 7.4+
 - Composer
