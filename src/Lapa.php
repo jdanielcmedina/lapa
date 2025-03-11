@@ -114,21 +114,22 @@ class Lapa {
                 $this->config = require $configPath;
             }
 
-            // Load helpers if exists - create helpers as methods
-            if (file_exists(__DIR__ . '/helpers.php')) {
-                $app = $this; // Make $app available in helpers scope
-                require __DIR__ . '/helpers.php';
+            // Load helpers - both file and directory are optional
+            $app = $this; // Make $app available in helpers scope
+            
+            // Try to load single helpers.php file if it exists
+            $helperFile = __DIR__ . '/helpers.php';
+            if (file_exists($helperFile)) {
+                require $helperFile;
+            }
+            
+            // Try to load helpers from directory if it exists
+            $helpersPath = __DIR__ . '/helpers';
+            if (is_dir($helpersPath)) {
+                $this->loadHelpersRecursively($helpersPath);
             }
 
             // Initialize storage structure
-            $this->initializeStorage();
-            
-            // Set timezone
-            if (isset($this->config['timezone'])) {
-                date_default_timezone_set($this->config['timezone']);
-            }
-
-            // Initialize components
             $this->initializeComponents();
             
         } catch (\Throwable $e) {
@@ -1616,5 +1617,30 @@ storage/
         }
         
         return $opts['json'] ? json_decode($response, true) : $response;
+    }
+
+    /**
+     * Load helpers recursively from directory
+     * 
+     * @param string $dir Directory path
+     * @return void
+     */
+    private function loadHelpersRecursively($dir) {
+        $items = glob($dir . '/*');
+
+        foreach ($items as $item) {
+            if (is_file($item) && pathinfo($item, PATHINFO_EXTENSION) === 'php') {
+                // Load PHP file
+                try {
+                    $this->log("Loading helper file: $item", "debug");
+                    require $item;
+                } catch (\Throwable $e) {
+                    $this->log("Failed to load helper file: $item - " . $e->getMessage(), 'error');
+                }
+            } elseif (is_dir($item)) {
+                // Recursively load files from subdirectory
+                $this->loadHelpersRecursively($item);
+            }
+        }
     }
 }
