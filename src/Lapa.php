@@ -1244,7 +1244,10 @@ class Lapa {
      * @param string $routesPath Path to routes directory
      * @return self
      */
-    public function loadRoutes($routesPath = 'routes') {
+    public function loadRoutes($routesPath = null) {
+        // Default routes path is in project root
+        $routesPath = $routesPath ?? dirname(__DIR__) . '/routes';
+        
         if (!is_dir($routesPath)) {
             $this->log("Routes directory not found: $routesPath", "warning");
             return $this;
