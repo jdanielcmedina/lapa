@@ -1,0 +1,58 @@
+{
+    "name": "jdanielcmedina/lapa",
+    "description": "A minimalist PHP framework for building REST APIs and web applications",
+    "type": "library",
+    "version": "1.5.0",
+    "keywords": [
+        "framework",
+        "php",
+        "rest",
+        "api",
+        "minimal",
+        "lightweight"
+    ],
+    "homepage": "https://github.com/jdanielcmedina/lapa",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Medina",
+            "email": "jdanielcmedina@gmail.com",
+            "homepage": "https://github.com/jdanielcmedina",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0",
+        "catfan/medoo": "^2.1",
+        "phpmailer/phpmailer": "^6.8",
+        "ext-json": "*",
+        "ext-pdo": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lapa\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.5-dev"
+        }
+    }
+}

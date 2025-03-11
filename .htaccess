@@ -1,0 +1,24 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Negar acesso a arquivos sensíveis
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "(composer\.json|composer\.lock|phpunit\.xml|README\.md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Proteger diretórios sensíveis
+RedirectMatch 403 ^/vendor/.*$
+RedirectMatch 403 ^/storage/.*$
+RedirectMatch 403 ^/tests/.*$
+RedirectMatch 403 ^/src/.*$
+
+# Proteger config.php e diretório private
+RedirectMatch 403 ^/storage/app/private/.*$
