@@ -35,7 +35,13 @@
         "psr-4": {
             "Lapa\\": "src/",
             "Lapa\\Plugins\\": "src/plugins/"
-        }
+        },
+        "files": [
+            "src/helpers/auth.php",
+            "src/helpers/webhook.php",
+            "routes/web.php",
+            "routes/api.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
