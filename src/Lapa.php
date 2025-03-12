@@ -242,6 +242,34 @@ class Lapa {
             // Register request handler
             register_shutdown_function([$this, 'handleRequest']);
         }
+
+        // Load plugins
+        $this->loadPlugins();
+    }
+
+    /**
+     * Load plugins from plugins directory
+     * @return void
+     */
+    private function loadPlugins() {
+        $pluginsPath = APP . 'plugins' . DS;
+        
+        if (!is_dir($pluginsPath)) {
+            return;
+        }
+
+        foreach (new \DirectoryIterator($pluginsPath) as $file) {
+            if ($file->isDot() || $file->isDir()) continue;
+            if ($file->getExtension() !== 'php') continue;
+
+            $className = 'Lapa\\Plugins\\' . $file->getBasename('.php');
+            if (class_exists($className)) {
+                $plugin = new $className($this);
+                $name = strtolower($file->getBasename('.php'));
+                $this->{$name} = $plugin;
+                $this->log("Plugin loaded: {$name}", "debug");
+            }
+        }
     }
 
     /**

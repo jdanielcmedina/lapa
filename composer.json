@@ -33,7 +33,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Lapa\\": "src/"
+            "Lapa\\": "src/",
+            "Lapa\\Plugins\\": "src/plugins/"
         }
     },
     "autoload-dev": {
