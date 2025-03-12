@@ -1,5 +1,13 @@
 <?php
 
+$app->on('GET /', function() {
+    return ['message' => 'Welcome to the homepage'];
+});
+
+$app->on('GET /tt', function() {
+    return ['message' => 'Welcome to the homepage'];
+});
+
 // Public routes
 $app->on('POST /login', function() {
     $credentials = $this->request();

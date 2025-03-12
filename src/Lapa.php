@@ -290,8 +290,11 @@ class Lapa {
                    rtrim($this->currentGroup, '/') . '/' . ltrim($path, '/') :
                    $path;
 
-        // Normalizar path
-        $fullPath = '/' . trim($fullPath, '/');
+        // Normalizar path (mantém barra final se existir no original)
+        $fullPath = '/' . trim($path, '/');
+        if ($path !== '/' && substr($path, -1) === '/') {
+            $fullPath .= '/';
+        }
 
         // Debug apenas se não estiver em teste e debug ativado
         if (!isset($this->config['test']) && ($this->config['debug'] ?? false)) {
@@ -1479,6 +1482,10 @@ storage/
         // Continuar com o processamento normal da rota
         $method = $_SERVER['REQUEST_METHOD'];
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        
+        // Remover barra final exceto para root '/'
+        $uri = $uri === '/' ? '/' : rtrim($uri, '/');
+        
         $host = $_SERVER['HTTP_HOST'] ?? '';
 
         if (isset($this->routes[$method])) {
