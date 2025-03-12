@@ -20,10 +20,6 @@ $app->minhaFuncao = function($param) {
     return "Minha função com: " . $param;
 };
 
-$app->outraFuncao = function() {
-    return "Outra função";
-};
-
 $app->isAuthenticated = function() {
     $token = $this->token();
     return $token && $this->validateJWT($token);

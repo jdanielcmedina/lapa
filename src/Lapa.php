@@ -58,7 +58,7 @@ class Lapa {
      * File permissions for different storage types
      * @var array
      */
-    private $storagePermissions;
+    private $perm;
 
     /**
      * Cache handler instance
@@ -90,46 +90,73 @@ class Lapa {
      */
     private $statusCode = 200;
 
-    /**
-     * Initialize the framework
-     */
     public function __construct($testConfig = null) {
         try {
+            // Define core paths and constants
+            if (!defined('DS')) define('DS', DIRECTORY_SEPARATOR);
+            if (!defined('ENV')) define('ENV', getenv('APP_ENV') ?: 'production');
+            
+            // Define base paths with DS at the end
+            define('ROOT', dirname(__DIR__) . DS);
+            define('APP', ROOT . 'src' . DS);
+            define('STORAGE', ROOT . 'storage' . DS);
+            define('CONFIG', STORAGE . 'app' . DS);
+            define('ROUTES', ROOT . 'routes' . DS);
+            define('VIEWS', ROOT . 'views' . DS);
+            define('CACHE', STORAGE . 'cache' . DS);
+            define('LOGS', STORAGE . 'logs' . DS);
+            define('UPLOADS', STORAGE . 'uploads' . DS);
+            define('TEMP', STORAGE . 'temp' . DS);
+            define('EXT', '.php');
+
+            // Set storage permissions
+            $this->perm = [
+                'public' => 0644,
+                'private' => 0600,
+                'folder' => 0755
+            ];
+
+            // Set storage paths using constants
+            $this->storagePaths = [
+                'app' => CONFIG,          
+                'logs' => LOGS,
+                'cache' => CACHE,
+                'temp' => TEMP,
+                'uploads' => UPLOADS,
+                'views' => VIEWS
+            ];
+
+            // Create required directories with proper permissions
+            foreach ($this->storagePaths as $type => $path) {
+                if (!is_dir($path)) {
+                    @mkdir($path, $this->perm['folder'], true);
+                }
+                
+                // Apply specific permissions
+                if ($type === 'app') {
+                    @chmod($path, $this->perm['private']);
+                    @file_put_contents($path . DS . '.htaccess', 'Deny from all');
+                } else if ($type === 'uploads') {
+                    @chmod($path, $this->perm['public']);
+                }
+            }
+
             // Handle configuration
             if ($testConfig) {
                 $this->config = $testConfig;
             } else {
-                // Sempre usar o config da pasta storage
-                $configPath = dirname(__DIR__) . '/storage/app/private/config.php';
-                
-                // Se não existir, criar baseado no exemplo
-                if (!file_exists($configPath)) {
-                    $examplePath = __DIR__ . '/config.example.php';
+                $configFile = CONFIG . DS . 'config' . EXT;
+                if (!file_exists($configFile)) {
+                    $examplePath = APP . 'config.example' . EXT;
                     if (!file_exists($examplePath)) {
                         throw new \Exception('Configuration example file not found');
                     }
-                    $this->createDefaultConfig($configPath, $examplePath);
+                    $this->createDefaultConfig($configFile, $examplePath);
                 }
-                
-                $this->config = require $configPath;
+                $this->config = require $configFile;
             }
 
-            // Load helpers - both file and directory are optional
-            $app = $this; // Make $app available in helpers scope
-            
-            // Try to load single helpers.php file if it exists
-            $helperFile = __DIR__ . '/helpers.php';
-            if (file_exists($helperFile)) {
-                require $helperFile;
-            }
-            
-            // Try to load helpers from directory if it exists
-            $helpersPath = __DIR__ . '/helpers';
-            if (is_dir($helpersPath)) {
-                $this->loadHelpersRecursively($helpersPath);
-            }
-
-            // Initialize storage structure
+            // Initialize components
             $this->initializeComponents();
             
         } catch (\Throwable $e) {
@@ -144,50 +171,13 @@ class Lapa {
         // Ensure directory exists
         $configDir = dirname($configPath);
         if (!is_dir($configDir)) {
-            mkdir($configDir, $this->storagePermissions['folder'], true);
-            chmod($configDir, $this->storagePermissions['private']);
+            mkdir($configDir, $this->perm['folder'], true);
+            chmod($configDir, $this->perm['private']);
         }
 
         // Copy example config
         copy($examplePath, $configPath);
-        chmod($configPath, $this->storagePermissions['private']);
-    }
-
-    private function initializeStorage() {
-        // Get storage config or use defaults
-        $this->storagePaths = $this->config['storage']['paths'] ?? [
-            'app' => 'storage/app',
-            'public' => 'storage/app/public',
-            'private' => 'storage/app/private',
-            'logs' => 'storage/logs',
-            'cache' => 'storage/cache',
-            'temp' => 'storage/temp',
-            'uploads' => 'storage/uploads',
-            'views' => 'views'  // Mudado de resources/views para views
-        ];
-
-        $this->storagePermissions = $this->config['storage']['permissions'] ?? [
-            'public' => 0644,
-            'private' => 0600,
-            'folder' => 0755
-        ];
-
-        // Create storage structure if needed
-        $base = dirname(__DIR__);
-        foreach ($this->storagePaths as $type => $path) {
-            $fullPath = $base . '/' . $path;
-            if (!is_dir($fullPath)) {
-                @mkdir($fullPath, $this->storagePermissions['folder'], true);
-                
-                // Set specific permissions
-                if ($type === 'private') {
-                    @chmod($fullPath, $this->storagePermissions['private']);
-                    @file_put_contents($fullPath . '/.htaccess', 'Deny from all');
-                } else if (in_array($type, ['public', 'uploads'])) {
-                    @chmod($fullPath, $this->storagePermissions['public']);
-                }
-            }
-        }
+        chmod($configPath, $this->perm['private']);
     }
 
     private function checkStorage() {
@@ -197,14 +187,14 @@ class Lapa {
         foreach ($this->storagePaths as $type => $path) {
             $fullPath = $base . '/' . $path;
             if (!is_dir($fullPath)) {
-                @mkdir($fullPath, $this->storagePermissions['folder'], true);
+                @mkdir($fullPath, $this->perm['folder'], true);
             }
 
             // Apply specific permissions
             if ($type === 'private') {
-                @chmod($fullPath, $this->storagePermissions['private']);
+                @chmod($fullPath, $this->perm['private']);
             } else if ($type === 'public' || $type === 'uploads') {
-                @chmod($fullPath, $this->storagePermissions['public']);
+                @chmod($fullPath, $this->perm['public']);
             }
         }
 
@@ -218,7 +208,7 @@ class Lapa {
      * @return bool
      */
     public function isConfigured() {
-        return file_exists(dirname(__DIR__) . '/storage/app/private/config.php');
+        return file_exists(CONFIG . DS . 'config' . EXT);
     }
 
     private function initializeComponents() {
@@ -353,7 +343,6 @@ class Lapa {
      *
      * @param mixed $data Response data
      * @param string $type Response type (json, text, html, xml)
-     * @param int|null $code HTTP status code
      * @return null
      */
     public function response($data, $type = 'json', $code = null) {
@@ -389,12 +378,12 @@ class Lapa {
     /**
      * Send error response
      *
-     * @param string $message Error message
-     * @param int $code HTTP status code
+     * @param string|null $message Error message
+     * @param int|null $code HTTP status code
      * @return null
      */
-    public function error($message, $code = 400) {
-        return $this->response(['error' => true, 'message' => $message], 'json', $code);
+    public function error($message = 'Not found', $code = 404) {
+        return $this->response($message, 'json', $code);
     }
 
     /**
@@ -467,8 +456,8 @@ class Lapa {
     /**
      * Load a partial view
      * 
-     * @param string $name Partial name
-     * @param array $data Data to pass to partial
+     * @param String $name Partial name
+     * @param mixed $data Data to pass to partial
      * @return void
      */
     public function partial($name, $data = []) {
@@ -485,6 +474,21 @@ class Lapa {
 
         extract($data);
         include $partialPath;
+    }
+
+    /**
+     * Send raw response
+     * 
+     * @param mixed $content Raw content to output
+     * @param string $type Content type (default: text/html)
+     * @return void
+     */
+    public function raw($content, $type = 'text/html') {
+        if (!headers_sent()) {
+            $this->type($type);
+        }
+        echo $content;
+        return null;
     }
 
     /**
@@ -1030,7 +1034,7 @@ class Lapa {
         $fullPath = $path . '/' . $filename;
 
         if (move_uploaded_file($file['tmp_name'], $fullPath)) {
-            @chmod($fullPath, $this->storagePermissions['public']);
+            @chmod($fullPath, $this->perm['public']);
             $this->log("File uploaded: $filename", "info");
             return $filename;
         }
@@ -1039,13 +1043,6 @@ class Lapa {
         return false;
     }
 
-    /**
-     * Download a file from storage
-     *
-     * @param string $file File path
-     * @param string|null $name Custom download name
-     * @return bool Success status
-     */
     public function download($file, $name = null) {
         // Check if absolute or relative to storage path
         $path = $file;
@@ -1279,9 +1276,8 @@ class Lapa {
      * @return self
      */
     public function loadRoutes($routesPath = null) {
-        // Default routes path is in project root
-        $routesPath = $routesPath ?? dirname(__DIR__) . '/routes';
-        
+        $routesPath = $routesPath ?? ROUTES;
+
         if (!is_dir($routesPath)) {
             $this->log("Routes directory not found: $routesPath", "warning");
             return $this;
@@ -1298,8 +1294,17 @@ class Lapa {
      * @return void
      */
     private function loadRoutesRecursively($dir) {
-        // Get all PHP files and directories
+        // Add safety check
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        // Get all PHP files and directories with safety check
         $items = glob($dir . '/*');
+        if (!is_array($items)) {
+            $this->log("Failed to read directory: $dir", "error");
+            return;
+        }
 
         foreach ($items as $item) {
             if (is_file($item) && pathinfo($item, PATHINFO_EXTENSION) === 'php') {
@@ -1312,7 +1317,6 @@ class Lapa {
                     $this->log("Failed to load route file: $item - " . $e->getMessage(), 'error');
                 }
             } elseif (is_dir($item)) {
-                // Recursivamente carregar arquivos do subdiretório
                 $this->loadRoutesRecursively($item);
             }
         }
@@ -1320,9 +1324,7 @@ class Lapa {
 
     // Método para obter path do storage
     public function storage($type = 'app') {
-        $base = dirname(__DIR__);
-        $path = $this->storagePaths[$type] ?? $this->storagePaths['app'];
-        return $base . '/' . $path;
+        return $this->storagePaths[$type] ?? APP;
     }
 
     /**
@@ -1371,7 +1373,7 @@ class Lapa {
         // Check if target directory exists
         $targetDir = dirname($targetPath);
         if (!is_dir($targetDir)) {
-            mkdir($targetDir, $this->storagePermissions['folder'], true);
+            mkdir($targetDir, $this->perm['folder'], true);
         }
         
         // Perform rename/move
@@ -1379,11 +1381,11 @@ class Lapa {
             // Apply correct permissions
             if (is_file($targetPath)) {
                 $perm = strpos($type, 'private') !== false ? 
-                    $this->storagePermissions['private'] : 
-                    $this->storagePermissions['public'];
+                    $this->perm['private'] : 
+                    $this->perm['public'];
                 chmod($targetPath, $perm);
             } else {
-                chmod($targetPath, $this->storagePermissions['folder']);
+                chmod($targetPath, $this->perm['folder']);
             }
             
             $this->log("Renamed: $from -> $to", "info");
@@ -1663,21 +1665,29 @@ storage/
      * @return void
      */
     private function loadHelpersRecursively($dir) {
-        $items = glob($dir . '/*');
+        // Suprimir warnings com @
+        $items = @glob($dir . '/*');
+        
+        // Se não houver items, retorna silenciosamente
+        if (!is_array($items)) {
+            return;
+        }
 
         foreach ($items as $item) {
-            if (is_file($item) && pathinfo($item, PATHINFO_EXTENSION) === 'php') {
+            if (!$item) continue;
+            
+            if (@is_file($item) && pathinfo($item, PATHINFO_EXTENSION) === 'php') {
                 // Load PHP file
                 try {
                     $this->log("Loading helper file: $item", "debug");
-                    require $item;
+                    @require $item;
                 } catch (\Throwable $e) {
                     $this->log("Failed to load helper file: $item - " . $e->getMessage(), 'error');
                 }
-            } elseif (is_dir($item)) {
-                // Recursively load files from subdirectory
+            } elseif (@is_dir($item)) {
                 $this->loadHelpersRecursively($item);
             }
         }
     }
+
 }

@@ -200,7 +200,7 @@ $this->cookie('theme', false);           // Remove
 
 ### Configuration
 
-Create `storage/app/private/config.php`:
+Create `storage/app/config.php`:
 
 ```php
 return [
@@ -226,18 +226,16 @@ return [
 
 ### Directory Structure
 
-```
+```bash
 lapa/
 ├── routes/
 │   ├── web.php
 │   └── api.php
 ├── storage/
-│   ├── app/
-│   │   ├── public/
-│   │   └── private/
+│   ├── app/           # Private storage by default
 │   ├── cache/
 │   ├── logs/
-│   └── uploads/
+│   └── uploads/       # Public files
 └── src/
     ├── Lapa.php
     └── helpers.php

@@ -4,6 +4,10 @@ $app->on('GET /hello', function() {
     return $this->hello('User');  // Uses hello() helper
 });
 
+$app->on('GET /test', function() {
+    return $this->outraFuncao();  // Uses fnteste() helper
+});
+
 $app->on('GET /date', function() {
     return [
         'date' => $this->formatDate(),  // Uses formatDate() helper

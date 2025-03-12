@@ -53,3 +53,18 @@
 [2025-03-11 14:41:30] DEBUG: Loading route file: routes/api.php
 [2025-03-11 14:41:30] DEBUG: Loading route file: routes/example.php
 [2025-03-11 14:41:30] DEBUG: Loading route file: routes/web.php
+[2025-03-11 23:23:50] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/api.php
+[2025-03-11 23:23:50] ERROR: Failed to load route file: /Volumes/www/github/lapa/routes/api.php - Method protect() does not exist
+[2025-03-11 23:23:50] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/example.php
+[2025-03-11 23:23:50] ERROR: Failed to load route file: /Volumes/www/github/lapa/routes/example.php - Method register() does not exist
+[2025-03-11 23:23:50] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/web.php
+[2025-03-11 23:43:46] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/api.php
+[2025-03-11 23:43:46] ERROR: Failed to load route file: /Volumes/www/github/lapa/routes/api.php - Method protect() does not exist
+[2025-03-11 23:43:46] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/example.php
+[2025-03-11 23:43:46] ERROR: Failed to load route file: /Volumes/www/github/lapa/routes/example.php - Method register() does not exist
+[2025-03-11 23:43:46] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/web.php
+[2025-03-11 23:46:44] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/api.php
+[2025-03-11 23:46:44] ERROR: Failed to load route file: /Volumes/www/github/lapa/routes/api.php - Method protect() does not exist
+[2025-03-11 23:46:44] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/example.php
+[2025-03-11 23:46:44] ERROR: Failed to load route file: /Volumes/www/github/lapa/routes/example.php - Method register() does not exist
+[2025-03-11 23:46:44] DEBUG: Loading route file: /Volumes/www/github/lapa/routes/web.php
