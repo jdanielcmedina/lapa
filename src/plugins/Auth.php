@@ -8,9 +8,22 @@ class Auth {
         $this->app = $app;
     }
     
-    // Seus métodos aqui
-}
+    public function check() {
+        return $this->app->session('user_id') !== null;
+    }
+    
+    public function user() {
+        $id = $this->app->session('user_id');
+        return $id ? $this->app->db->get('users', '*', ['id' => $id]) : null;
+    }
 
-// No seu arquivo de rotas ou bootstrap
-$auth = new \Lapa\Plugins\Auth($app);
-$app->auth = $auth;
+    public function login($userId) {
+        $this->app->session('user_id', $userId);
+        return true;
+    }
+
+    public function logout() {
+        $this->app->session('user_id', false);
+        return true;
+    }
+}
