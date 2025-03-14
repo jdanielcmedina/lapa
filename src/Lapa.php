@@ -97,8 +97,9 @@ class Lapa {
             if (!defined('ENV')) define('ENV', getenv('APP_ENV') ?: 'production');
             
             // Define base paths with DS at the end
-            define('ROOT', dirname(__DIR__) . DS);
-            define('APP', ROOT . 'src' . DS);
+            // Alterando para usar o diretório do projeto ao invés do vendor
+            define('ROOT', $this->findProjectRoot());
+            define('APP', ROOT . 'app' . DS);
             define('STORAGE', ROOT . 'storage' . DS);
             define('CONFIG', STORAGE . 'app' . DS);
             define('ROUTES', ROOT . 'routes' . DS);
@@ -165,6 +166,31 @@ class Lapa {
             }
             die("Internal server error");
         }
+    }
+
+    /**
+     * Find the project root directory
+     * @return string
+     */
+    private function findProjectRoot() {
+        // Começar pelo diretório atual
+        $dir = getcwd();
+        
+        // Se estamos em public/, subir um nível
+        if (basename($dir) === 'public') {
+            $dir = dirname($dir);
+        }
+        
+        // Procurar por composer.json ou vendor/
+        while ($dir !== '/') {
+            if (file_exists($dir . '/composer.json') || is_dir($dir . '/vendor')) {
+                return rtrim($dir, '/') . DS;
+            }
+            $dir = dirname($dir);
+        }
+        
+        // Se não encontrar, usar o diretório atual
+        return getcwd() . DS;
     }
 
     private function createDefaultConfig($configPath, $examplePath) {
