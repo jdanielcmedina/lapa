@@ -18,5 +18,32 @@
         "post-create-project-cmd": [
             "Lapa\\Installer::install"
         ]
+    },
+    "archive": {
+        "exclude": [
+            "/.github",
+            "/.gitignore",
+            "/.travis.yml",
+            "/.editorconfig",
+            "/.php-cs-fixer.php",
+            "/CODE_OF_CONDUCT.md",
+            "/CONTRIBUTING.md",
+            "/docker-compose.yml",
+            "/*.dist",
+            "/README.md",
+            "/TECHNICAL.md",
+            "/CHANGELOG.md",
+            "/.gitattributes",
+            "/composer.lock",
+            "/.env",
+            "/.env.example",
+            "/docs",
+            "/*.md",
+            "/SECURITY.md",
+            "/UPGRADE.md",
+            "/SUPPORT.md",
+            "/.php_cs",
+            "/.php_cs.dist"
+        ]
     }
 }
