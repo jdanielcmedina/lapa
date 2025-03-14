@@ -92,12 +92,11 @@ class Lapa {
 
     public function __construct($testConfig = null) {
         try {
-            // Define core paths and constants
+            // Define base paths
             if (!defined('DS')) define('DS', DIRECTORY_SEPARATOR);
             if (!defined('ENV')) define('ENV', getenv('APP_ENV') ?: 'production');
             
-            // Define base paths with DS at the end
-            // Alterando para usar o diretório do projeto ao invés do vendor
+            // Define project paths
             define('ROOT', $this->findProjectRoot());
             define('APP', ROOT . 'app' . DS);
             define('STORAGE', ROOT . 'storage' . DS);
