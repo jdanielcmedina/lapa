@@ -9,16 +9,18 @@ class Installer {
         $projectPath = realpath($projectPath);
 
         $directories = [
+            'app',
+            'public',
             'routes',
             'views',
             'views/partials',
-            'storage',
+            'helpers',
+            'plugins',
             'storage/app',
-            'storage/cache',
             'storage/logs',
-            'storage/uploads',
+            'storage/cache',
             'storage/temp',
-            'helpers'  // Nova pasta para helpers do projeto
+            'storage/uploads'
         ];
 
         // Criar diretórios
@@ -86,7 +88,8 @@ HTACCESS;
 <?php
 require '../vendor/autoload.php';
 
-$app = new Lapa\Lapa();
+$app = new \Lapa\Lapa();
+require __DIR__ . '/../routes/web.php';
 PHP;
     }
 
