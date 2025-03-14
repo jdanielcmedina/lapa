@@ -1,23 +1,21 @@
 {
     "name": "jdanielcmedina/lapa",
     "description": "A minimalist PHP framework for building REST APIs and web applications",
-    "type": "library",
-    "license": "MIT",
+    "type": "composer-plugin",
     "require": {
         "php": "^7.4|^8.0",
         "catfan/medoo": "^2.1",
         "phpmailer/phpmailer": "^6.8",
         "ext-json": "*",
-        "ext-pdo": "*"
+        "ext-pdo": "*",
+        "composer-plugin-api": "^2.0"
+    },
+    "extra": {
+        "class": "Lapa\\Installer"
     },
     "autoload": {
         "psr-4": {
             "Lapa\\": "src/"
         }
-    },
-    "scripts": {
-        "post-package-install": [
-            "Lapa\\Installer::install"
-        ]
     }
 }

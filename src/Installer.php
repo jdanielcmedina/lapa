@@ -1,12 +1,18 @@
 <?php
 namespace Lapa;
 
-class Installer {
-    public static function install() {
-        // Alterar para usar o diretório do projeto
-        $projectPath = getcwd();
-        
-        // Criar estrutura básica do projeto
+use Composer\Composer;
+use Composer\IO\IOInterface;
+use Composer\Plugin\PluginInterface;
+
+class Installer implements PluginInterface
+{
+    public function activate(Composer $composer, IOInterface $io)
+    {
+        $vendorDir = $composer->getConfig()->get('vendor-dir');
+        $projectDir = dirname($vendorDir);
+
+        // Criar estrutura no diretório do projeto
         $directories = [
             'app',
             'public',
@@ -21,7 +27,7 @@ class Installer {
         ];
 
         foreach ($directories as $dir) {
-            $path = $projectPath . '/' . $dir;
+            $path = $projectDir . '/' . $dir;
             if (!is_dir($path)) {
                 @mkdir($path, 0755, true);
             }
@@ -29,14 +35,14 @@ class Installer {
 
         // Criar arquivos base
         $files = [
-            'public/index.php' => "<?php\nrequire '../vendor/autoload.php';\n\$app = new \Lapa\Lapa();",
+            'public/index.php' => "<?php\nrequire '../vendor/autoload.php';\n\$app = new \\Lapa\\Lapa();",
             'public/.htaccess' => "RewriteEngine On\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteRule ^ index.php [QSA,L]",
             'routes/web.php' => "<?php\n\$app->on('GET /', function() {\n    return ['message' => 'Welcome to Lapa!'];\n});",
             'storage/app/config.php' => self::getConfigTemplate(),
         ];
 
         foreach ($files as $file => $content) {
-            $path = $projectPath . '/' . $file;
+            $path = $projectDir . '/' . $file;
             if (!file_exists($path)) {
                 if (!is_dir(dirname($path))) {
                     mkdir(dirname($path), 0755, true);
@@ -45,23 +51,11 @@ class Installer {
             }
         }
 
-        echo "Lapa Framework installed successfully!\n";
+        $io->write("Lapa Framework installed successfully!");
     }
 
-    public static function getIndexTemplate() {
-        // Template para o index.php
-        return "<?php\nrequire '../vendor/autoload.php';\n\$app = new \Lapa\Lapa();";
-    }
-
-    public static function getHtaccessTemplate() {
-        // Template para o .htaccess
-        return "RewriteEngine On\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteRule ^ index.php [QSA,L]";
-    }
-
-    public static function getWebRouteTemplate() {
-        // Template para as rotas
-        return "<?php\n\$app->on('GET /', function() {\n    return ['message' => 'Welcome to Lapa!'];\n});";
-    }
+    public function deactivate(Composer $composer, IOInterface $io) {}
+    public function uninstall(Composer $composer, IOInterface $io) {}
 
     public static function getConfigTemplate() {
         // Template do config
