@@ -2,6 +2,8 @@
     "name": "jdanielcmedina/lapa",
     "description": "A minimalist PHP framework for building REST APIs and web applications",
     "type": "project",
+    "version": "1.0.0",
+    "license": "MIT",
     "require": {
         "php": "^7.4|^8.0",
         "catfan/medoo": "^2.1",
@@ -17,33 +19,6 @@
     "scripts": {
         "post-create-project-cmd": [
             "Lapa\\Installer::install"
-        ]
-    },
-    "archive": {
-        "exclude": [
-            "/.github",
-            "/.gitignore",
-            "/.travis.yml",
-            "/.editorconfig",
-            "/.php-cs-fixer.php",
-            "/CODE_OF_CONDUCT.md",
-            "/CONTRIBUTING.md",
-            "/docker-compose.yml",
-            "/*.dist",
-            "/README.md",
-            "/TECHNICAL.md",
-            "/CHANGELOG.md",
-            "/.gitattributes",
-            "/composer.lock",
-            "/.env",
-            "/.env.example",
-            "/docs",
-            "/*.md",
-            "/SECURITY.md",
-            "/UPGRADE.md",
-            "/SUPPORT.md",
-            "/.php_cs",
-            "/.php_cs.dist"
         ]
     }
 }
