@@ -1,25 +1,7 @@
 {
     "name": "jdanielcmedina/lapa",
     "description": "A minimalist PHP framework for building REST APIs and web applications",
-    "type": "library",
-    "keywords": [
-        "framework",
-        "php",
-        "rest",
-        "api",
-        "minimal",
-        "lightweight"
-    ],
-    "homepage": "https://github.com/jdanielcmedina/lapa",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Daniel Medina",
-            "email": "jdanielcmedina@gmail.com",
-            "homepage": "https://github.com/jdanielcmedina",
-            "role": "Developer"
-        }
-    ],
+    "type": "project",
     "require": {
         "php": "^7.4|^8.0",
         "catfan/medoo": "^2.1",
@@ -29,59 +11,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Lapa\\": "src/",
-            "Lapa\\Plugins\\": "src/plugins/"
-        },
-        "files": [
-            "src/helpers/core.php",
-            "src/helpers/defaults.php"
-        ]
+            "Lapa\\": "src/"
+        }
     },
     "scripts": {
-        "post-install-cmd": [
-            "Lapa\\Installer::install"
-        ],
         "post-create-project-cmd": [
             "Lapa\\Installer::install"
         ]
-    },
-    "config": {
-        "sort-packages": true,
-        "optimize-autoloader": true
-    },
-    "archive": {
-        "exclude": [
-            "/.github",
-            "/.gitignore",
-            "/.travis.yml",
-            "/.editorconfig",
-            "/.php-cs-fixer.php",
-            "/CODE_OF_CONDUCT.md",
-            "/CONTRIBUTING.md",
-            "/docker-compose.yml",
-            "/*.dist",
-            "/README.md",
-            "/TECHNICAL.md",
-            "/LICENSE",
-            "/CHANGELOG.md",
-            "/.gitattributes",
-            "/composer.lock",
-            "/.env",
-            "/.env.example",
-            "/docs",
-            "/*.md",
-            "/SECURITY.md",
-            "/UPGRADE.md",
-            "/SUPPORT.md",
-            "/.php_cs",
-            "/.php_cs.dist"
-        ]
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "extra": {
-        "branch-alias": {
-            "dev-main": "1.0-dev"
-        }
     }
 }

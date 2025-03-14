@@ -1,8 +1,13 @@
 <?php
 namespace Lapa;
 
+use Composer\Script\Event;
+
 class Installer {
-    public static function install($projectPath) {
+    public static function install(Event $event = null) {
+        $projectPath = $event ? $event->getComposer()->getConfig()->get('vendor-dir') . '/..' : getcwd();
+        $projectPath = realpath($projectPath);
+
         $directories = [
             'routes',
             'views',
@@ -18,8 +23,9 @@ class Installer {
 
         // Criar diretórios
         foreach ($directories as $dir) {
-            if (!is_dir($projectPath . '/' . $dir)) {
-                mkdir($projectPath . '/' . $dir, 0755, true);
+            $path = $projectPath . '/' . $dir;
+            if (!is_dir($path)) {
+                @mkdir($path, 0755, true);
             }
         }
 
@@ -45,7 +51,7 @@ class Installer {
         }
 
         echo "Lapa Framework installed successfully!\n";
-        echo "Please configure your application in storage/app/config.php\n";
+        echo "You can now start building your application.\n";
     }
 
     private static function getConfigTemplate() {

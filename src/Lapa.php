@@ -127,21 +127,6 @@ class Lapa {
                 'views' => VIEWS
             ];
 
-            // Create required directories with proper permissions
-            foreach ($this->storagePaths as $type => $path) {
-                if (!is_dir($path)) {
-                    @mkdir($path, $this->perm['folder'], true);
-                }
-                
-                // Apply specific permissions
-                if ($type === 'app') {
-                    @chmod($path, $this->perm['private']);
-                    @file_put_contents($path . DS . '.htaccess', 'Deny from all');
-                } else if ($type === 'uploads') {
-                    @chmod($path, $this->perm['public']);
-                }
-            }
-
             // Handle configuration
             if ($testConfig) {
                 $this->config = $testConfig;
@@ -1459,7 +1444,7 @@ class Lapa {
      */
     public function debug() {
         error_log("=== DEBUG LAPA ===");
-        error_log("Grupos: " . $this->currentGroup);
+        error_log("Grupos: " . print_r($this->currentGroup, true));
         error_log("Rotas: " . print_r($this->routes, true));
         error_log("=================");
     }
