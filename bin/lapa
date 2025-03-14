@@ -1,0 +1,14 @@
+#!/usr/bin/env php
+<?php
+
+if (php_sapi_name() !== 'cli') {
+    exit('This script can only be run from the command line.');
+}
+
+require __DIR__ . '/../vendor/autoload.php';
+
+echo "Creating Lapa project structure...\n";
+
+$projectPath = getcwd();
+$installer = new \Lapa\Installer();
+$installer->createStructure($projectPath);
