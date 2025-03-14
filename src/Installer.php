@@ -33,11 +33,17 @@ class Installer {
 
         // Copiar arquivos base
         $files = [
-            'routes/web.php' => "<?php\n\n\$app->on('GET /', function() {\n    return ['message' => 'Welcome to Lapa!'];\n});",
+            'public/index.php' => <<<'PHP'
+<?php
+require '../vendor/autoload.php';
+
+$app = new \Lapa\Lapa();
+require __DIR__ . '/../routes/web.php';
+PHP
+            ,
             'routes/api.php' => "<?php\n\n\$app->group('/api', function(\$app) {\n    \$app->on('GET /', function() {\n        return ['version' => '1.0.0'];\n    });\n});",
             'storage/app/config.example.php' => self::getConfigTemplate(),
             'public/.htaccess' => self::getHtaccessTemplate(),
-            'public/index.php' => self::getIndexTemplate(),
             'helpers/auth.php' => self::getAuthHelperTemplate(),
             'helpers/app.php' => self::getAppHelperTemplate(),
         ];
@@ -81,16 +87,6 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
 HTACCESS;
-    }
-
-    private static function getIndexTemplate() {
-        return <<<'PHP'
-<?php
-require '../vendor/autoload.php';
-
-$app = new \Lapa\Lapa();
-require __DIR__ . '/../routes/web.php';
-PHP;
     }
 
     private static function getAuthHelperTemplate() {
