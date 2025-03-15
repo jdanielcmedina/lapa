@@ -25,7 +25,7 @@
     },
     "scripts": {
         "post-create-project-cmd": [
-            "@php -r \"Lapa\\Installer::createStructure();\""
+            "php -r \"require 'vendor/autoload.php'; \\Lapa\\Installer::createStructure();\""
         ]
     }
 }
