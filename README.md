@@ -23,8 +23,19 @@ A minimalist PHP framework for building REST APIs and web applications.
 ### Installation
 
 ```bash
-composer require jdanielcmedina/lapa
+composer create-project jdanielcmedina/lapa my-project
 ```
+
+This will:
+- Create a new project directory
+- Install the framework and dependencies
+- Create the base structure:
+  - public/
+  - routes/
+  - views/
+  - storage/
+  - helpers/
+  - plugins/
 
 ### Quick Start
 
@@ -315,7 +326,7 @@ $this->partial('header', [
     'showMenu' => true
 ]);
 
-$this->partial('sidebar', [
+$this->.partial('sidebar', [
     'user' => $user,
     'menuItems' => $items
 ]);
