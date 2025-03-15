@@ -1,21 +1,7 @@
 <?php
 namespace Lapa;
 
-use Composer\Composer;
-use Composer\IO\IOInterface;
-use Composer\Plugin\PluginInterface;
-
-class Installer implements PluginInterface {
-    public function activate(Composer $composer, IOInterface $io) {
-        $vendorDir = $composer->getConfig()->get('vendor-dir');
-        $projectDir = dirname($vendorDir);
-        
-        // Criar estrutura
-        self::createStructure($projectDir);
-        
-        $io->write("\n<info>Lapa Framework installed successfully!</info>\n");
-    }
-
+class Installer {
     public static function createStructure($projectPath = null) {
         // Se não passado, usar diretório atual
         $projectPath = $projectPath ?? getcwd();
@@ -66,7 +52,4 @@ class Installer implements PluginInterface {
     private static function getConfigTemplate() {
         return "<?php\nreturn [\n    'debug' => true,\n    'timezone' => 'UTC'\n];";
     }
-
-    public function deactivate(Composer $composer, IOInterface $io) {}
-    public function uninstall(Composer $composer, IOInterface $io) {}
 }
