@@ -1485,7 +1485,7 @@ class Lapa {
                             border-radius: 8px;
                             border: 1px solid #e9ecef;
                             box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-                            font-family: 'Fira Code', 'Consolas', monospace;
+                            font-family: Fira Code, Consolas, monospace;
                         }
                         code {
                             background: #f8f9fa;
