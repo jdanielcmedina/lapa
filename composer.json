@@ -3,7 +3,6 @@
     "description": "A minimalist PHP framework for building REST APIs and web applications",
     "type": "project",
     "license": "MIT",
-    "version": "1.0.0",
     "homepage": "https://github.com/jdanielcmedina/lapa",
     "authors": [
         {
