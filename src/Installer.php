@@ -20,6 +20,8 @@ class Installer implements PluginInterface {
         // Se não passado, usar diretório atual
         $projectPath = $projectPath ?? getcwd();
         
+        echo "Creating Lapa structure in: $projectPath\n";
+        
         $directories = [
             'app',
             'public',
@@ -57,6 +59,8 @@ class Installer implements PluginInterface {
                 file_put_contents($path, $content);
             }
         }
+        
+        echo "Lapa Framework installed successfully!\n";
     }
 
     private static function getConfigTemplate() {

@@ -1,7 +1,7 @@
 {
     "name": "jdanielcmedina/lapa",
     "description": "A minimalist PHP framework for building REST APIs and web applications",
-    "type": "library",
+    "type": "project",
     "license": "MIT",
     "version": "1.0.0",
     "homepage": "https://github.com/jdanielcmedina/lapa",
@@ -25,7 +25,7 @@
     },
     "scripts": {
         "post-create-project-cmd": [
-            "Lapa\\Installer::createStructure"
+            "@php -r \"Lapa\\Installer::createStructure();\""
         ]
     }
-} 
+}
