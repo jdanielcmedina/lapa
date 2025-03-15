@@ -1,7 +1,21 @@
 <?php
 namespace Lapa;
 
-class Installer {
+use Composer\Composer;
+use Composer\IO\IOInterface;
+use Composer\Plugin\PluginInterface;
+
+class Installer implements PluginInterface {
+    public function activate(Composer $composer, IOInterface $io) {
+        $vendorDir = $composer->getConfig()->get('vendor-dir');
+        $projectDir = dirname($vendorDir);
+        
+        // Criar estrutura
+        $this->createStructure($projectDir);
+        
+        $io->write("\n<info>Lapa Framework installed successfully!</info>\n");
+    }
+
     public function createStructure($projectPath) {
         $directories = [
             'app',
