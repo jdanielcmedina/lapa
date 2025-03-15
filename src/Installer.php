@@ -11,12 +11,15 @@ class Installer implements PluginInterface {
         $projectDir = dirname($vendorDir);
         
         // Criar estrutura
-        $this->createStructure($projectDir);
+        self::createStructure($projectDir);
         
         $io->write("\n<info>Lapa Framework installed successfully!</info>\n");
     }
 
-    public function createStructure($projectPath) {
+    public static function createStructure($projectPath = null) {
+        // Se não passado, usar diretório atual
+        $projectPath = $projectPath ?? getcwd();
+        
         $directories = [
             'app',
             'public',
@@ -56,7 +59,7 @@ class Installer implements PluginInterface {
         }
     }
 
-    public static function getConfigTemplate() {
+    private static function getConfigTemplate() {
         return "<?php\nreturn [\n    'debug' => true,\n    'timezone' => 'UTC'\n];";
     }
 
