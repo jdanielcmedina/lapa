@@ -26,16 +26,5 @@
         "post-create-project-cmd": [
             "php -r \"require 'vendor/autoload.php'; \\Lapa\\Installer::createStructure();\""
         ]
-    },
-    "archive": {
-        "exclude": [
-            "README.md",
-            "TECHNICAL.md",
-            "*.md",
-            ".git",
-            ".gitignore",
-            "tests",
-            "docs"
-        ]
     }
 }
