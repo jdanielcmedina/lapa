@@ -46,7 +46,7 @@ class Installer implements PluginInterface {
         ];
 
         foreach ($files as $file => $content) {
-            $path = $projectDir . '/' . $file;
+            $path = $projectPath . '/' . $file;
             if (!file_exists($path)) {
                 if (!is_dir(dirname($path))) {
                     mkdir(dirname($path), 0755, true);
@@ -57,7 +57,9 @@ class Installer implements PluginInterface {
     }
 
     public static function getConfigTemplate() {
-        // Template do config
-        return "<?php\nreturn [\n    // sua configuração aqui\n];";
+        return "<?php\nreturn [\n    'debug' => true,\n    'timezone' => 'UTC'\n];";
     }
+
+    public function deactivate(Composer $composer, IOInterface $io) {}
+    public function uninstall(Composer $composer, IOInterface $io) {}
 }

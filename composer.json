@@ -3,6 +3,14 @@
     "description": "A minimalist PHP framework for building REST APIs and web applications",
     "type": "library",
     "license": "MIT",
+    "version": "1.0.0",
+    "homepage": "https://github.com/jdanielcmedina/lapa",
+    "authors": [
+        {
+            "name": "Daniel Medina",
+            "email": "jdanielcmedina@gmail.com"
+        }
+    ],
     "require": {
         "php": "^7.4|^8.0",
         "catfan/medoo": "^2.1",
@@ -14,5 +22,10 @@
         "psr-4": {
             "Lapa\\": "src/"
         }
+    },
+    "scripts": {
+        "post-create-project-cmd": [
+            "Lapa\\Installer::createStructure"
+        ]
     }
-}
+} 
