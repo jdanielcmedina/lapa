@@ -1458,32 +1458,62 @@ class Lapa {
                     <title>Lapa Framework - Setup Required</title>
                     <style>
                         body { 
-                            font-family: sans-serif; 
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                             max-width: 800px; 
-                            margin: 40px auto; 
-                            padding: 20px;
+                            margin: 0 auto;
+                            padding: 0;
                             line-height: 1.6;
+                            color: #333;
+                        }
+                        .header {
+                            background: linear-gradient(to right, #ff8c00, #ff6b00);
+                            padding: 20px;
+                            color: white;
+                            margin-bottom: 40px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        }
+                        .content {
+                            padding: 0 20px;
+                        }
+                        h1 {
+                            margin: 0;
+                            font-size: 2.5em;
                         }
                         pre {
-                            background: #f5f5f5;
-                            padding: 15px;
-                            border-radius: 5px;
+                            background: #f8f9fa;
+                            padding: 20px;
+                            border-radius: 8px;
+                            border: 1px solid #e9ecef;
+                            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+                            font-family: 'Fira Code', 'Consolas', monospace;
+                        }
+                        code {
+                            background: #f8f9fa;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                            font-size: 0.9em;
+                        }
+                        p {
+                            color: #495057;
                         }
                     </style>
                 </head>
                 <body>
-                    <h1>Lapa Framework</h1>
-                    <p>The application needs to be configured before it can be used.</p>
-                    <p>Look for the file <code>config.example.php</code> in the root folder and copy it to <code>storage/app/private/config.php</code></p>
-                    <p>Then modify the configuration values as needed.</p>
-                    <p>Example path:</p>
-                    <pre>
+                    <div class="header">
+                        <h1>Lapa Framework</h1>
+                    </div>
+                    <div class="content">
+                        <p>The application needs to be configured before it can be used.</p>
+                        <p>Look for the file <code>config.example.php</code> in the root folder and copy it to <code>storage/app/config.php</code></p>
+                        <p>Then modify the configuration values as needed.</p>
+                        <p>Example path:</p>
+                        <pre>
 storage/
   app/
-    private/
       config.php    <-- Copy config.example.php here
-                    </pre>
-                    <p>Once you copy and configure the file, this message will disappear.</p>
+                        </pre>
+                        <p>Once you copy and configure the file, this message will disappear.</p>
+                    </div>
                 </body>
                 </html>
             ');
