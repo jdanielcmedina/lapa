@@ -301,9 +301,11 @@ class Lapa {
                    $path;
 
         // Normalizar path (mantém barra final se existir no original)
-        $fullPath = '/' . trim($path, '/');
-        if ($path !== '/' && substr($path, -1) === '/') {
-            $fullPath .= '/';
+        if ($fullPath !== '/') {
+            $fullPath = '/' . trim($fullPath, '/');
+            if (substr($path, -1) === '/') {
+                $fullPath .= '/';
+            }
         }
 
         // Debug apenas se não estiver em teste e debug ativado
@@ -1523,50 +1525,78 @@ storage/
         $method = $_SERVER['REQUEST_METHOD'];
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         
-        // Remover barra final exceto para root '/'
-        $uri = $uri === '/' ? '/' : rtrim($uri, '/');
+        // Criar duas versões do URI: com e sem barra final
+        $uriWithSlash = rtrim($uri, '/') . '/';
+        $uriWithoutSlash = rtrim($uri, '/');
         
         $host = $_SERVER['HTTP_HOST'] ?? '';
 
         if (isset($this->routes[$method])) {
-            foreach ($this->routes[$method] as $pattern => $route) {
-                // Verificar virtual host primeiro
-                if (!empty($route['vhost']) && $route['vhost'] !== $host) {
-                    continue;
-                }
-
-                // Match route pattern
-                $regex = preg_replace('/:[a-zA-Z]+/', '([^/]+)', $pattern);
-                $regex = str_replace('/', '\/', $regex);
-                $regex = '/^' . $regex . '$/';
-                
-                if (preg_match($regex, $uri, $matches)) {
-                    // Extract params
-                    preg_match_all('/:([a-zA-Z]+)/', $pattern, $paramNames);
-                    array_shift($matches);
-                    $this->currentParams = array_combine($paramNames[1] ?? [], $matches);
-                    
-                    // Execute route callback
-                    $response = $route['callback']($this);
-                    
-                    // Handle response
-                    if ($response !== null) {
-                        if (is_array($response)) {
-                            if (!headers_sent()) {
-                                header('Content-Type: application/json; charset=utf-8');
-                            }
-                            echo json_encode($response);
-                        } else {
-                            echo $response;
-                        }
-                    }
-                    return;
-                }
+            // Primeiro tenta encontrar uma correspondência exata
+            if ($this->tryMatchRoute($method, $uri, $host)) {
+                return;
+            }
+            
+            // Se não encontrar, tenta com barra final
+            if ($uri !== $uriWithSlash && $this->tryMatchRoute($method, $uriWithSlash, $host)) {
+                return;
+            }
+            
+            // Se ainda não encontrar, tenta sem barra final
+            if ($uri !== $uriWithoutSlash && $this->tryMatchRoute($method, $uriWithoutSlash, $host)) {
+                return;
             }
         }
         
         // 404 handler
         $this->error('Not Found', 404);
+    }
+    
+    /**
+     * Try to match a route and execute its callback
+     * 
+     * @param string $method HTTP method
+     * @param string $uri Request URI
+     * @param string $host Host name
+     * @return bool True if route was matched and executed
+     */
+    private function tryMatchRoute($method, $uri, $host) {
+        foreach ($this->routes[$method] as $pattern => $route) {
+            // Verificar virtual host primeiro
+            if (!empty($route['vhost']) && $route['vhost'] !== $host) {
+                continue;
+            }
+
+            // Match route pattern
+            $regex = preg_replace('/:[a-zA-Z]+/', '([^/]+)', $pattern);
+            $regex = str_replace('/', '\/', $regex);
+            $regex = '/^' . $regex . '$/';
+            
+            if (preg_match($regex, $uri, $matches)) {
+                // Extract params
+                preg_match_all('/:([a-zA-Z]+)/', $pattern, $paramNames);
+                array_shift($matches);
+                $this->currentParams = array_combine($paramNames[1] ?? [], $matches);
+                
+                // Execute route callback
+                $response = $route['callback']($this);
+                
+                // Handle response
+                if ($response !== null) {
+                    if (is_array($response)) {
+                        if (!headers_sent()) {
+                            header('Content-Type: application/json; charset=utf-8');
+                        }
+                        echo json_encode($response);
+                    } else {
+                        echo $response;
+                    }
+                }
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
