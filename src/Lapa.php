@@ -445,7 +445,7 @@ class Lapa {
     }
 
     /**
-     * Render PHP view template
+     * Render PHP  template
      *
      * @param string $file View file path
      * @param array $data Data to pass to view
@@ -517,6 +517,62 @@ class Lapa {
 
         extract($data);
         include $partialPath;
+    }
+
+    /**
+     * Render layout template and incorporate a specific page within it
+     *
+     * @param string $page Page file path to be incorporated within the layout
+     * @param array $data Data to pass to both layout and page
+     * @param int|null $code HTTP status code
+     * @return null
+     * @throws \Exception If layout or page file not found
+     */
+    public function layout($page, $data = [], $code = null) {
+        if ($code !== null) {
+            $this->status($code);
+        }
+    
+        http_response_code($this->statusCode);
+    
+        $layout = 'layout.php';
+    
+        // Check if absolute path or relative to views directory
+        $layoutPath = $this->storage('views') . '/' . $layout;
+        $pagePath = $this->storage('views') . '/' . ltrim($page, '/');
+    
+        // Check if files exist
+        if (!file_exists($layoutPath)) {
+            throw new \Exception("Layout not found: {$layout}");
+        }
+    
+        if (!file_exists($pagePath)) {
+            throw new \Exception("Page not found: {$page}");
+        }
+    
+        // Extrair variáveis para o escopo local
+        extract($data);
+    
+        // Iniciar buffer de output
+        ob_start();
+    
+        // Incluir layout e passar página como variável
+        try {
+            $pageContent = function() use ($pagePath, $data) {
+                extract($data);
+                include $pagePath;
+            };
+            include $layoutPath;
+            $content = ob_get_clean();
+            
+            echo $content;
+            $this->statusCode = 200;
+            
+            return null;
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
     }
 
     /**
