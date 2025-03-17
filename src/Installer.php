@@ -9,14 +9,13 @@ class Installer {
         echo "Creating Lapa structure in: $projectPath\n";
         
         $directories = [
-            'app',
             'public',
             'routes',
-            'views/partials',
-            'storage/app',
-            'storage/logs',
+            'views/partials',  // Aqui já é criada a pasta partials
             'storage/cache',
+            'storage/logs',
             'storage/uploads',
+            'storage/temp',
             'helpers',
             'plugins'
         ];
@@ -30,10 +29,41 @@ class Installer {
 
         // Criar arquivos base
         $files = [
-            'public/index.php' => "<?php\nrequire '../vendor/autoload.php';\n\$app = new \\Lapa\\Lapa();",
+            'public/index.php' => "<?php
+require '../vendor/autoload.php';
+
+\$app = new \\Lapa\\Lapa([
+    'debug' => true,
+    'secure' => false,
+    'cors' => [
+        'enabled' => false,
+        'origins' => '*',
+        'methods' => 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+        'headers' => 'Content-Type, Authorization, X-Requested-With',
+        'credentials' => false
+    ],
+    'mail' => [
+        'enabled' => false,
+        'host' => 'smtp.example.com',
+        'port' => 587,
+        'secure' => 'tls',
+        'auth' => true,
+        'username' => 'your@email.com',
+        'password' => 'your-password',
+        'fromName' => 'Your Application',
+        'fromEmail' => 'noreply@yourdomain.com',
+        'debug' => 0
+    ],
+    'db' => [
+        'type' => 'mysql',
+        'database' => 'database_name',
+        'host' => 'localhost',
+        'username' => 'root',
+        'password' => ''
+    ]
+]);",
             'public/.htaccess' => "RewriteEngine On\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteRule ^ index.php [QSA,L]",
-            'routes/web.php' => "<?php\n\$app->on('GET /', function() {\n    return ['message' => 'Welcome to Lapa!'];\n});",
-            'storage/app/config.php' => self::getConfigTemplate(),
+            'routes/web.php' => "<?php\n\$app->on('GET /', function() {\n    return ['message' => 'Welcome to Lapa!'];\n});"
         ];
 
         foreach ($files as $file => $content) {
@@ -46,10 +76,10 @@ class Installer {
             }
         }
         
-        echo "Lapa Framework installed successfully!\n";
-    }
-
-    private static function getConfigTemplate() {
-        return "<?php\nreturn [\n    'debug' => true,\n    'timezone' => 'UTC'\n];";
+        echo "\n";
+        echo "===========================================\n";
+        echo "🚀 LAPA FRAMEWORK INSTALLED SUCCESSFULLY! 🚀\n";
+        echo "===========================================\n";
+        echo "\n";
     }
 }

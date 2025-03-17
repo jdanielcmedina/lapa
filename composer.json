@@ -4,6 +4,7 @@
     "type": "project",
     "license": "MIT",
     "homepage": "https://github.com/jdanielcmedina/lapa",
+    "version": "1.0.1",
     "authors": [
         {
             "name": "Daniel Medina",

@@ -211,28 +211,99 @@ $this->cookie('theme', false);           // Remove
 
 ### Configuration
 
-Create `storage/app/config.php`:
-
 ```php
 return [
     'debug' => true,
     'timezone' => 'UTC',
     
+    // CORS Configuration
+    'cors' => [
+        'enabled' => false,
+        'origins' => '*',
+        'methods' => 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+        'headers' => 'Content-Type, Authorization, X-Requested-With',
+        'credentials' => false
+    ],
+    
+    // Email Configuration
+    'mail' => [
+        'enabled' => false,
+        'host' => 'smtp.example.com',
+        'port' => 587,
+        'secure' => 'tls',      // tls ou ssl
+        'auth' => true,
+        'username' => '',
+        'password' => '',
+        'fromName' => 'Your App',
+        'fromEmail' => 'noreply@example.com',
+        'debug' => 0           // 0 = off, 1 = client, 2 = client/server
+    ],
+    
+    // Database Configuration
     'db' => [
         'type' => 'mysql',
         'host' => 'localhost',
         'database' => 'db_name',
         'username' => 'user',
         'password' => 'pass'
-    ],
-    
-    'mail' => [
-        'host' => 'smtp.example.com',
-        'port' => 587,
-        'username' => 'user@example.com',
-        'password' => 'password'
     ]
 ];
+```
+
+### Email Usage
+
+```php
+// Send email
+$app->mail()
+    ->addAddress('recipient@example.com')
+    ->setSubject('Test Email')
+    ->setBody('Hello World!')
+    ->send();
+
+// With HTML
+$app->mail()
+    ->addAddress('recipient@example.com', 'John Doe')
+    ->setSubject('Welcome')
+    ->isHTML(true)
+    ->setBody('<h1>Welcome!</h1><p>Your account is ready.</p>')
+    ->send();
+
+// With attachments
+$app->mail()
+    ->addAddress('recipient@example.com')
+    ->setSubject('Documents')
+    ->addAttachment('/path/to/file.pdf', 'Document.pdf')
+    ->send();
+```
+
+### CORS Support
+
+CORS is disabled by default but can be easily enabled:
+
+```php
+// Enable CORS with default settings
+$app = new Lapa\Lapa([
+    'cors' => [
+        'enabled' => true
+    ]
+]);
+
+// Custom CORS configuration
+$app = new Lapa\Lapa([
+    'cors' => [
+        'enabled' => true,
+        'origins' => 'https://myapp.com',
+        'methods' => 'GET, POST',
+        'headers' => 'X-Custom-Header',
+        'credentials' => true
+    ]
+]);
+
+// Override per route
+$app->on('GET /api', function() {
+    $this->cors('https://api.myapp.com', 'GET, POST');
+    return ['data' => 'API response'];
+});
 ```
 
 ### Directory Structure
@@ -360,6 +431,57 @@ Os partials devem estar na pasta `views/partials/` e podem ser organizados em su
 - Suporte a subdiretórios
 - Passagem de dados específicos
 - Aninhamento de partials
+
+### Initialization
+
+There are two ways to initialize the Lapa Framework:
+
+1. Direct initialization in index.php:
+```php
+$app = new Lapa\Lapa([
+    'debug' => true,      // Enable debug mode
+    'secure' => false,    // HTTPS requirement
+    'errors' => true,     // Show detailed errors
+    'timezone' => 'UTC'   // Default timezone
+], [
+    // Database configuration (optional)
+    'type' => 'mysql',
+    'database' => 'my_database',
+    'host' => 'localhost',
+    'username' => 'root',
+    'password' => ''
+]);
+```
+
+2. Using config.php file:
+```php
+// config.php
+return [
+    'debug' => true,
+    'secure' => false,
+    'errors' => true,
+    'timezone' => 'UTC',
+    
+    'db' => [
+        'type' => 'mysql',
+        'database' => 'my_database',
+        'host' => 'localhost',
+        'username' => 'root',
+        'password' => ''
+    ]
+];
+
+// index.php
+$app = new Lapa\Lapa();
+```
+
+The framework has sensible defaults for all configuration options:
+- debug: false
+- secure: false
+- errors: true
+- timezone: 'UTC'
+- upload.max_size: 5MB
+- cache.ttl: 1 hour
 
 ### Requirements
 

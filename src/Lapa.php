@@ -12,12 +12,8 @@ namespace Lapa;
  * @version     1.0.0
  */
 class Lapa {
-    /**
-     * Framework configuration
-     * @var array
-     */
     private $config;
-
+    private $paths = [];
     /**
      * Registered routes
      * @var array
@@ -90,66 +86,97 @@ class Lapa {
      */
     private $statusCode = 200;
 
-    public function __construct($testConfig = null) {
+    public function __construct($config = [], $database = null) {
         try {
             // Define base paths
-            if (!defined('DS')) define('DS', DIRECTORY_SEPARATOR);
-            if (!defined('ENV')) define('ENV', getenv('APP_ENV') ?: 'production');
+            $root = $this->findProjectRoot();
             
-            // Define project paths
-            define('ROOT', $this->findProjectRoot());
-            define('APP', ROOT . 'app' . DS);
-            define('STORAGE', ROOT . 'storage' . DS);
-            define('CONFIG', STORAGE . 'app' . DS);
-            define('ROUTES', ROOT . 'routes' . DS);
-            define('VIEWS', ROOT . 'views' . DS);
-            define('CACHE', STORAGE . 'cache' . DS);
-            define('LOGS', STORAGE . 'logs' . DS);
-            define('UPLOADS', STORAGE . 'uploads' . DS);
-            define('TEMP', STORAGE . 'temp' . DS);
-            define('EXT', '.php');
-
-            // Set storage permissions
-            $this->perm = [
-                'public' => 0644,
-                'private' => 0600,
-                'folder' => 0755
+            $this->paths = [
+                'root'    => $root,
+                'routes'  => $root . 'routes',
+                'views'   => $root . 'views',
+                'storage' => [
+                    'cache'   => $root . 'storage/cache',
+                    'logs'    => $root . 'storage/logs',
+                    'uploads' => $root . 'storage/uploads',
+                    'temp'    => $root . 'storage/temp'
+                ]
             ];
 
-            // Set storage paths using constants
-            $this->storagePaths = [
-                'app' => CONFIG,          
-                'logs' => LOGS,
-                'cache' => CACHE,
-                'temp' => TEMP,
-                'uploads' => UPLOADS,
-                'views' => VIEWS
+            // Default configurations
+            $defaults = [
+                'debug' => false,
+                'secure' => false,
+                'errors' => true,
+                'timezone' => 'UTC',
+                'upload' => [
+                    'max_size' => 5242880, // 5MB
+                    'allowed_types' => [
+                        'image/jpeg',
+                        'image/png',
+                        'application/pdf'
+                    ]
+                ],
+                'cache' => [
+                    'ttl' => 3600 // 1 hour
+                ],
+                'cors' => [
+                    'enabled' => false,
+                    'origins' => '*',
+                    'methods' => 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+                    'headers' => 'Content-Type, Authorization, X-Requested-With',
+                    'credentials' => false // Allow cookies/auth headers
+                ],
+                'mail' => [
+                    'enabled' => false,
+                    'host' => 'smtp.example.com',
+                    'port' => 587,
+                    'secure' => 'tls', // tls ou ssl
+                    'auth' => true,
+                    'username' => '',
+                    'password' => '',
+                    'fromName' => 'Lapa Framework',
+                    'fromEmail' => 'noreply@example.com',
+                    'debug' => 0 // 0 = off, 1 = client, 2 = client/server
+                ]
             ];
 
-            // Handle configuration
-            if ($testConfig) {
-                $this->config = $testConfig;
-            } else {
-                $configFile = CONFIG . DS . 'config' . EXT;
-                if (!file_exists($configFile)) {
-                    $examplePath = APP . 'config.example' . EXT;
-                    if (!file_exists($examplePath)) {
-                        throw new \Exception('Configuration example file not found');
-                    }
-                    $this->createDefaultConfig($configFile, $examplePath);
-                }
-                $this->config = require $configFile;
+            // Merge user config with defaults
+            $this->config = array_replace_recursive($defaults, $config);
+
+            // Set database config if provided
+            if ($database) {
+                $this->config['db'] = $database;
             }
+
+            // Set timezone
+            date_default_timezone_set($this->config['timezone']);
 
             // Initialize components
             $this->initializeComponents();
             
+            // Initialize error handler
+            $this->errors = new Errors($this);
+            
         } catch (\Throwable $e) {
-            if ($this->config['debug'] ?? false) {
+            if ($this->config['debug']) {
                 throw $e;
             }
             die("Internal server error");
         }
+    }
+
+    public function path($key = null) {
+        if ($key === null) {
+            return $this->paths;
+        }
+        
+        if (strpos($key, '.') !== false) {
+            list($section, $subkey) = explode('.', $key);
+            return $this->paths[$section][$subkey] ?? null;
+        }
+        
+        return $this->paths[$key] ?? null;
     }
 
     /**
@@ -232,16 +259,31 @@ class Lapa {
         }
         
         // Initialize mailer if configured
-        if (isset($this->config['mail'])) {
-            $this->mailer = new \PHPMailer\PHPMailer\PHPMailer(true);
-            // Configure mailer from config
-            if (isset($this->config['mail']['host'])) {
-                $this->mailer->Host = $this->config['mail']['host'];
-                $this->mailer->Port = $this->config['mail']['port'] ?? 587;
-                $this->mailer->Username = $this->config['mail']['username'] ?? '';
-                $this->mailer->Password = $this->config['mail']['password'] ?? '';
-                $this->mailer->SMTPAuth = true;
-                $this->mailer->SMTPSecure = 'tls';
+        if (isset($this->config['mail']) && $this->config['mail']['enabled']) {
+            try {
+                $this->mailer = new \PHPMailer\PHPMailer\PHPMailer(true);
+                $mailConfig = $this->config['mail'];
+                
+                // Server settings
+                $this->mailer->SMTPDebug = $mailConfig['debug'];
+                $this->mailer->isSMTP();
+                $this->mailer->Host = $mailConfig['host'];
+                $this->mailer->Port = $mailConfig['port'];
+                $this->mailer->SMTPSecure = $mailConfig['secure'];
+                $this->mailer->SMTPAuth = $mailConfig['auth'];
+                $this->mailer->Username = $mailConfig['username'];
+                $this->mailer->Password = $mailConfig['password'];
+                
+                // Default sender
+                $this->mailer->setFrom(
+                    $mailConfig['fromEmail'],
+                    $mailConfig['fromName']
+                );
+                
+                $this->log("Mailer initialized", "debug");
+            } catch (\PHPMailer\PHPMailer\Exception $e) {
+                $this->log("Mailer initialization failed: " . $e->getMessage(), "error");
+                throw $e;
             }
         }
         
@@ -296,17 +338,13 @@ class Lapa {
         $path = $parts[1] ?? '';
 
         // Construir caminho completo com grupo
-        $fullPath = $this->currentGroup ? 
-                   rtrim($this->currentGroup, '/') . '/' . ltrim($path, '/') :
-                   $path;
-
-        // Normalizar path (mantém barra final se existir no original)
-        if ($fullPath !== '/') {
-            $fullPath = '/' . trim($fullPath, '/');
-            if (substr($path, -1) === '/') {
-                $fullPath .= '/';
-            }
+        $fullPath = $path;
+        if ($this->currentGroup) {
+            $fullPath = rtrim($this->currentGroup, '/') . '/' . ltrim($path, '/');
         }
+
+        // Normalizar path (sempre remover barra final exceto para root '/')
+        $fullPath = $fullPath === '/' ? '/' : rtrim($fullPath, '/');
 
         // Debug apenas se não estiver em teste e debug ativado
         if (!isset($this->config['test']) && ($this->config['debug'] ?? false)) {
@@ -352,8 +390,11 @@ class Lapa {
         // Guardar grupo atual
         $previousGroup = $this->currentGroup;
         
-        // Adicionar novo prefixo ao grupo atual
-        $this->currentGroup = $previousGroup . '/' . trim($prefix, '/');
+        // Adicionar novo prefixo ao grupo atual (sempre sem barra no final)
+        if ($prefix !== '/') {
+            $prefix = rtrim($prefix, '/');
+        }
+        $this->currentGroup = $previousGroup ? rtrim($previousGroup, '/') . '/' . ltrim($prefix, '/') : $prefix;
            
         // Executar callback com o novo grupo
         $callback($this);
@@ -445,7 +486,7 @@ class Lapa {
     }
 
     /**
-     * Render PHP  template
+     * Render PHP view template
      *
      * @param string $file View file path
      * @param array $data Data to pass to view
@@ -517,62 +558,6 @@ class Lapa {
 
         extract($data);
         include $partialPath;
-    }
-
-    /**
-     * Render layout template and incorporate a specific page within it
-     *
-     * @param string $page Page file path to be incorporated within the layout
-     * @param array $data Data to pass to both layout and page
-     * @param int|null $code HTTP status code
-     * @return null
-     * @throws \Exception If layout or page file not found
-     */
-    public function layout($page, $data = [], $code = null) {
-        if ($code !== null) {
-            $this->status($code);
-        }
-    
-        http_response_code($this->statusCode);
-    
-        $layout = 'layout.php';
-    
-        // Check if absolute path or relative to views directory
-        $layoutPath = $this->storage('views') . '/' . $layout;
-        $pagePath = $this->storage('views') . '/' . ltrim($page, '/');
-    
-        // Check if files exist
-        if (!file_exists($layoutPath)) {
-            throw new \Exception("Layout not found: {$layout}");
-        }
-    
-        if (!file_exists($pagePath)) {
-            throw new \Exception("Page not found: {$page}");
-        }
-    
-        // Extrair variáveis para o escopo local
-        extract($data);
-    
-        // Iniciar buffer de output
-        ob_start();
-    
-        // Incluir layout e passar página como variável
-        try {
-            $pageContent = function() use ($pagePath, $data) {
-                extract($data);
-                include $pagePath;
-            };
-            include $layoutPath;
-            $content = ob_get_clean();
-            
-            echo $content;
-            $this->statusCode = 200;
-            
-            return null;
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
     }
 
     /**
@@ -806,12 +791,29 @@ class Lapa {
      * @param string $headers Allowed headers
      * @return self
      */
-    public function cors($origins = '*', $methods = 'GET, POST, OPTIONS', $headers = '') {
-        return $this->header([
+    public function cors($origins = null, $methods = null, $headers = null) {
+        // Se CORS não estiver ativado, retorna sem fazer nada
+        if (!($this->config['cors']['enabled'] ?? false)) {
+            return $this;
+        }
+
+        // Usar valores da config se não especificados
+        $origins = $origins ?? $this->config['cors']['origins'];
+        $methods = $methods ?? $this->config['cors']['methods'];
+        $headers = $headers ?? $this->config['cors']['headers'];
+        
+        $corsHeaders = [
             'Access-Control-Allow-Origin' => $origins,
             'Access-Control-Allow-Methods' => $methods,
             'Access-Control-Allow-Headers' => $headers
-        ]);
+        ];
+
+        // Adicionar credentials se configurado
+        if ($this->config['cors']['credentials'] ?? false) {
+            $corsHeaders['Access-Control-Allow-Credentials'] = 'true';
+        }
+
+        return $this->header($corsHeaders);
     }
 
     /**
@@ -1501,8 +1503,8 @@ class Lapa {
      */
     public function debug() {
         error_log("=== DEBUG LAPA ===");
-        error_log("Grupos: " . print_r($this->currentGroup, true));
-        error_log("Rotas: " . print_r($this->routes, true));
+        error_log("Groups: " . print_r($this->currentGroup, true));
+        error_log("Routes: " . print_r($this->routes, true));
         error_log("=================");
     }
 
@@ -1581,78 +1583,50 @@ storage/
         $method = $_SERVER['REQUEST_METHOD'];
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         
-        // Criar duas versões do URI: com e sem barra final
-        $uriWithSlash = rtrim($uri, '/') . '/';
-        $uriWithoutSlash = rtrim($uri, '/');
+        // Remover barra final exceto para root '/'
+        $uri = $uri === '/' ? '/' : rtrim($uri, '/');
         
         $host = $_SERVER['HTTP_HOST'] ?? '';
 
         if (isset($this->routes[$method])) {
-            // Primeiro tenta encontrar uma correspondência exata
-            if ($this->tryMatchRoute($method, $uri, $host)) {
-                return;
-            }
-            
-            // Se não encontrar, tenta com barra final
-            if ($uri !== $uriWithSlash && $this->tryMatchRoute($method, $uriWithSlash, $host)) {
-                return;
-            }
-            
-            // Se ainda não encontrar, tenta sem barra final
-            if ($uri !== $uriWithoutSlash && $this->tryMatchRoute($method, $uriWithoutSlash, $host)) {
-                return;
+            foreach ($this->routes[$method] as $pattern => $route) {
+                // Verificar virtual host primeiro
+                if (!empty($route['vhost']) && $route['vhost'] !== $host) {
+                    continue;
+                }
+
+                // Match route pattern
+                $regex = preg_replace('/:[a-zA-Z]+/', '([^/]+)', $pattern);
+                $regex = str_replace('/', '\/', $regex);
+                $regex = '/^' . $regex . '$/';
+                
+                if (preg_match($regex, $uri, $matches)) {
+                    // Extract params
+                    preg_match_all('/:([a-zA-Z]+)/', $pattern, $paramNames);
+                    array_shift($matches);
+                    $this->currentParams = array_combine($paramNames[1] ?? [], $matches);
+                    
+                    // Execute route callback
+                    $response = $route['callback']($this);
+                    
+                    // Handle response
+                    if ($response !== null) {
+                        if (is_array($response)) {
+                            if (!headers_sent()) {
+                                header('Content-Type: application/json; charset=utf-8');
+                            }
+                            echo json_encode($response);
+                        } else {
+                            echo $response;
+                        }
+                    }
+                    return;
+                }
             }
         }
         
         // 404 handler
         $this->error('Not Found', 404);
-    }
-    
-    /**
-     * Try to match a route and execute its callback
-     * 
-     * @param string $method HTTP method
-     * @param string $uri Request URI
-     * @param string $host Host name
-     * @return bool True if route was matched and executed
-     */
-    private function tryMatchRoute($method, $uri, $host) {
-        foreach ($this->routes[$method] as $pattern => $route) {
-            // Verificar virtual host primeiro
-            if (!empty($route['vhost']) && $route['vhost'] !== $host) {
-                continue;
-            }
-
-            // Match route pattern
-            $regex = preg_replace('/:[a-zA-Z]+/', '([^/]+)', $pattern);
-            $regex = str_replace('/', '\/', $regex);
-            $regex = '/^' . $regex . '$/';
-            
-            if (preg_match($regex, $uri, $matches)) {
-                // Extract params
-                preg_match_all('/:([a-zA-Z]+)/', $pattern, $paramNames);
-                array_shift($matches);
-                $this->currentParams = array_combine($paramNames[1] ?? [], $matches);
-                
-                // Execute route callback
-                $response = $route['callback']($this);
-                
-                // Handle response
-                if ($response !== null) {
-                    if (is_array($response)) {
-                        if (!headers_sent()) {
-                            header('Content-Type: application/json; charset=utf-8');
-                        }
-                        echo json_encode($response);
-                    } else {
-                        echo $response;
-                    }
-                }
-                return true;
-            }
-        }
-        
-        return false;
     }
 
     /**
@@ -1849,6 +1823,36 @@ storage/
                 $this->loadHelpersRecursively($item);
             }
         }
+    }
+
+    /**
+     * Render view with layout
+     * 
+     * @param string $view View file path
+     * @param string $layout Layout file path
+     * @param array $data Data to pass to view and layout
+     * @param int|null $code HTTP status code
+     * @return null
+     */
+    public function layout($view, $layout = 'default', $data = [], $code = null) {
+        if ($code !== null) {
+            $this->status($code);
+        }
+
+        // Start output buffering
+        ob_start();
+
+        // Render view
+        $this->view($view, $data);
+        
+        // Get view content
+        $content = ob_get_clean();
+        
+        // Add content to data
+        $data['content'] = $content;
+        
+        // Render layout with view content
+        return $this->view('layouts/' . $layout, $data, $code);
     }
 
 }
