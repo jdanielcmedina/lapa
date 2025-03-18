@@ -1,35 +1,39 @@
 # Lapa Framework
 
-A minimalist PHP framework for building REST APIs and web applications.
+Um framework PHP minimalista para construir APIs REST e aplicações web.
 
-## Features
+## Características
 
-- 🚀 Lightweight and fast
-- 🎯 REST API focused
-- 🔌 Dynamic helpers
-- 🛣️ Simple routing system
-- 🔒 Built-in security
-- 📝 Automatic logging
-- 💾 Simple caching
-- 🗄️ Storage management
-- 🔑 Sessions and cookies
-- 🌐 Virtual hosts support
-- 🔄 External API integration
-- 🛡️ Authentication helpers
-- ✨ Input validation
-- 📦 Database support (via Medoo)
-- 📧 Mailer support (via PHPMailer)
+- 🚀 Leve e rápido
+- 🎯 Focado em APIs REST
+- 🔌 Helpers dinâmicos
+- 🛣️ Sistema de rotas simples
+- 🔒 Segurança integrada
+- 📝 Logs automáticos
+- 💾 Cache simples
+- 🗄️ Gerenciamento de arquivos
+- 🔑 Sessões e cookies
+- 🌐 Suporte a hosts virtuais
+- 🔄 Integração com APIs externas
+- 🛡️ Helpers de autenticação
+- ✨ Validação de entrada
+- 📦 Suporte a banco de dados (via Medoo)
+- 📧 Suporte a email (via PHPMailer)
+- ⚠️ Tratamento de erros personalizado
+- 🔔 Mensagens flash
+- 🖼️ Sistema de layouts
+- 🔌 Sistema de plugins
 
-### Installation
+### Instalação
 
 ```bash
-composer create-project jdanielcmedina/lapa my-project
+composer create-project jdanielcmedina/lapa meu-projeto
 ```
 
-This will:
-- Create a new project directory
-- Install the framework and dependencies
-- Create the base structure:
+Isto vai:
+- Criar um novo diretório para o projeto
+- Instalar o framework e dependências
+- Criar a estrutura base:
   - public/
   - routes/
   - views/
@@ -37,90 +41,90 @@ This will:
   - helpers/
   - plugins/
 
-### Quick Start
+### Início Rápido
 
 ```php
 require 'vendor/autoload.php';
 $app = new Lapa\Lapa();
 
-// Basic route
+// Rota básica
 $app->on('GET /', function() {
-    return ['message' => 'Hello World!'];
+    return ['mensagem' => 'Olá Mundo!'];
 });
 
-// Protected route
-$app->on('GET /protected', function() {
+// Rota protegida
+$app->on('GET /protegido', function() {
     if (!$this->requireAuth()) {
         return;
     }
-    return ['data' => 'protected content'];
+    return ['dados' => 'conteúdo protegido'];
 });
 
-// REST API example
-$app->on('POST /users', function() {
-    $data = $this->validate([
-        'name' => 'required|min:3',
+// Exemplo de API REST
+$app->on('POST /usuarios', function() {
+    $dados = $this->validate([
+        'nome' => 'required|min:3',
         'email' => 'required|email'
     ]);
     
-    if (!$data) return; // Validation failed
+    if (!$dados) return; // Validação falhou
     
-    return $this->success($data, 'User created');
+    return $this->success($dados, 'Usuário criado');
 });
 ```
 
-### Documentation
+### Documentação
 
-#### Request Handling
+#### Manipulação de Requisições
 
 ```php
-// GET parameters
-$query = $this->get('search');           // Single parameter
-$allGet = $this->get();                  // All GET parameters
+// Parâmetros GET
+$query = $this->get('search');           // Parâmetro único
+$allGet = $this->get();                  // Todos os parâmetros GET
 
-// POST data
-$name = $this->post('name');             // Single field
-$allPost = $this->post();                // All POST data
+// Dados POST
+$nome = $this->post('name');             // Campo único
+$allPost = $this->post();                // Todos os dados POST
 
-// Combined request data
-$all = $this->request();                 // All request data
-$specific = $this->request('field');     // Specific field
+// Dados combinados da requisição
+$all = $this->request();                 // Todos os dados da requisição
+$specific = $this->request('field');     // Campo específico
 
-// JSON body
-$json = $this->body();                   // Full body
-$field = $this->body('field');           // Specific field
+// Corpo JSON
+$json = $this->body();                   // Corpo completo
+$field = $this->body('field');           // Campo específico
 ```
 
-#### Response Methods
+#### Métodos de Resposta
 
 ```php
-// Success responses
+// Respostas de sucesso
 return $this->success($data);                    // 200 OK
-return $this->success($data, 'Created', 201);    // 201 Created
+return $this->success($data, 'Criado', 201);     // 201 Created
 
-// Error responses
-return $this->error('Invalid input', 400);       // 400 Bad Request
-return $this->error('Unauthorized', 401);        // 401 Unauthorized
+// Respostas de erro
+return $this->error('Entrada inválida', 400);    // 400 Bad Request
+return $this->error('Não autorizado', 401);      // 401 Unauthorized
 
-// Custom responses
+// Respostas personalizadas
 return $this->response($data, 'json');           // JSON
 return $this->response($html, 'html');           // HTML
-return $this->response($text, 'text');           // Plain text
+return $this->response($text, 'text');           // Texto simples
 return $this->response($xml, 'xml');             // XML
 ```
 
-#### Authentication & Protection
+#### Autenticação e Proteção
 
 ```php
-// Protect routes
-$app->on('GET /api/data', function() {
+// Proteger rotas
+$app->on('GET /api/dados', function() {
     if (!$this->requireAuth()) {
         return;
     }
-    return ['data' => 'protected'];
+    return ['dados' => 'protegido'];
 });
 
-// Admin routes
+// Rotas de administrador
 $app->on('GET /admin', function() {
     if (!$this->requireAdmin()) {
         return;
@@ -129,40 +133,40 @@ $app->on('GET /admin', function() {
 });
 ```
 
-#### Data Validation
+#### Validação de Dados
 
 ```php
 $validated = $this->validate([
-    'name' => 'required|min:3',
+    'nome' => 'required|min:3',
     'email' => 'required|email',
-    'age' => 'numeric|min:18',
+    'idade' => 'numeric|min:18',
     'role' => 'in:user,admin'
 ]);
 ```
 
-#### Database Operations
+#### Operações de Banco de Dados
 
 ```php
-// Select
-$users = $this->db->select('users', '*');
+// Selecionar
+$usuarios = $this->db->select('users', '*');
 
-// Insert
+// Inserir
 $id = $this->db->insert('users', [
-    'name' => 'John',
+    'nome' => 'John',
     'email' => 'john@example.com'
 ]);
 
-// Update
+// Atualizar
 $this->db->update('users',
     ['status' => 'active'],
     ['id' => 1]
 );
 
-// Delete
+// Deletar
 $this->db->delete('users', ['id' => 1]);
 ```
 
-#### File Management
+#### Gerenciamento de Arquivos
 
 ```php
 // Upload
@@ -171,20 +175,20 @@ $filename = $this->upload('photo');
 // Download
 $this->download('file.pdf', 'custom-name.pdf');
 
-// Storage
-$path = $this->storage('public');    // Get storage path
-$this->clear('cache');               // Clear storage
+// Armazenamento
+$path = $this->storage('public');    // Obter caminho de armazenamento
+$this->clear('cache');               // Limpar armazenamento
 ```
 
-#### External API Integration
+#### Integração com APIs Externas
 
 ```php
-// GET request
+// Requisição GET
 $data = $this->import('https://api.example.com/data', [
     'headers' => ['Authorization' => 'Bearer ' . $token]
 ]);
 
-// POST request
+// Requisição POST
 $result = $this->import('https://api.example.com/users', [
     'method' => 'POST',
     'data' => ['name' => 'John'],
@@ -192,31 +196,31 @@ $result = $this->import('https://api.example.com/users', [
 ]);
 ```
 
-#### Session & Cookies
+#### Sessões e Cookies
 
 ```php
-// Sessions
-$this->session('user_id', 123);          // Set
-$id = $this->session('user_id');         // Get
-$this->session('user_id', false);        // Remove
+// Sessões
+$this->session('user_id', 123);          // Definir
+$id = $this->session('user_id');         // Obter
+$this->session('user_id', false);        // Remover
 
 // Cookies
-$this->cookie('theme', 'dark', [         // Set with options
+$this->cookie('theme', 'dark', [         // Definir com opções
     'expire' => time() + 86400,
     'secure' => true
 ]);
-$theme = $this->cookie('theme');         // Get
-$this->cookie('theme', false);           // Remove
+$theme = $this->cookie('theme');         // Obter
+$this->cookie('theme', false);           // Remover
 ```
 
-### Configuration
+### Configuração
 
 ```php
 return [
     'debug' => true,
     'timezone' => 'UTC',
     
-    // CORS Configuration
+    // Configuração de CORS
     'cors' => [
         'enabled' => false,
         'origins' => '*',
@@ -225,7 +229,7 @@ return [
         'credentials' => false
     ],
     
-    // Email Configuration
+    // Configuração de Email
     'mail' => [
         'enabled' => false,
         'host' => 'smtp.example.com',
@@ -239,7 +243,7 @@ return [
         'debug' => 0           // 0 = off, 1 = client, 2 = client/server
     ],
     
-    // Database Configuration
+    // Configuração de Banco de Dados
     'db' => [
         'type' => 'mysql',
         'host' => 'localhost',
@@ -250,45 +254,45 @@ return [
 ];
 ```
 
-### Email Usage
+### Uso de Email
 
 ```php
-// Send email
+// Enviar email
 $app->mail()
     ->addAddress('recipient@example.com')
-    ->setSubject('Test Email')
-    ->setBody('Hello World!')
+    ->setSubject('Email de Teste')
+    ->setBody('Olá Mundo!')
     ->send();
 
-// With HTML
+// Com HTML
 $app->mail()
     ->addAddress('recipient@example.com', 'John Doe')
-    ->setSubject('Welcome')
+    ->setSubject('Bem-vindo')
     ->isHTML(true)
-    ->setBody('<h1>Welcome!</h1><p>Your account is ready.</p>')
+    ->setBody('<h1>Bem-vindo!</h1><p>Seu cadastro está pronto.</p>')
     ->send();
 
-// With attachments
+// Com anexos
 $app->mail()
     ->addAddress('recipient@example.com')
-    ->setSubject('Documents')
-    ->addAttachment('/path/to/file.pdf', 'Document.pdf')
+    ->setSubject('Documentos')
+    ->addAttachment('/path/to/file.pdf', 'Documento.pdf')
     ->send();
 ```
 
-### CORS Support
+### Suporte a CORS
 
-CORS is disabled by default but can be easily enabled:
+CORS está desativado por padrão, mas pode ser facilmente ativado:
 
 ```php
-// Enable CORS with default settings
+// Ativar CORS com configurações padrão
 $app = new Lapa\Lapa([
     'cors' => [
         'enabled' => true
     ]
 ]);
 
-// Custom CORS configuration
+// Configuração personalizada de CORS
 $app = new Lapa\Lapa([
     'cors' => [
         'enabled' => true,
@@ -299,14 +303,14 @@ $app = new Lapa\Lapa([
     ]
 ]);
 
-// Override per route
+// Sobrescrever por rota
 $app->on('GET /api', function() {
     $this->cors('https://api.myapp.com', 'GET, POST');
-    return ['data' => 'API response'];
+    return ['dados' => 'Resposta da API'];
 });
 ```
 
-### Directory Structure
+### Estrutura de Diretórios
 
 ```bash
 lapa/
@@ -314,10 +318,10 @@ lapa/
 │   ├── web.php
 │   └── api.php
 ├── storage/
-│   ├── app/           # Private storage by default
+│   ├── app/           # Armazenamento privado por padrão
 │   ├── cache/
 │   ├── logs/
-│   └── uploads/       # Public files
+│   └── uploads/       # Arquivos públicos
 └── src/
     ├── Lapa.php
     └── helpers.php
@@ -397,7 +401,7 @@ $this->partial('header', [
     'showMenu' => true
 ]);
 
-$this->.partial('sidebar', [
+$this->partial('sidebar', [
     'user' => $user,
     'menuItems' => $items
 ]);
@@ -432,19 +436,80 @@ Os partials devem estar na pasta `views/partials/` e podem ser organizados em su
 - Passagem de dados específicos
 - Aninhamento de partials
 
-### Initialization
+### Tratamento de Erros
 
-There are two ways to initialize the Lapa Framework:
+```php
+// Customizar tratamento de erros
+$app = new Lapa\Lapa([
+    'debug' => true  // Mostrar detalhes em desenvolvimento
+]);
 
-1. Direct initialization in index.php:
+// Os erros são automaticamente capturados e exibidos com estilo
+try {
+    // código que pode gerar erro
+} catch (\Exception $e) {
+    // Erros 500+ mostram detalhes apenas em debug
+    // Erros 400-499 mostram mensagem amigável
+}
+```
+
+### Sistema de Layouts
+
+```php
+// Usar layout base
+return $this->layout('pages/home', 'default', [
+    'title' => 'Home Page'
+]);
+
+// Em views/layouts/default.php
+<!DOCTYPE html>
+<html>
+<head>
+    <title><?= $title ?></title>
+</head>
+<body>
+    <?= $content // Conteúdo da view ?>
+</body>
+</html>
+```
+
+### Sistema de Plugins
+
+```php
+// Em plugins/Cache.php
+class Cache {
+    public function set($key, $value) {
+        // ...
+    }
+}
+
+// Uso
+$app->cache->set('key', 'value');
+```
+
+### Mensagens Flash
+
+```php
+// Definir mensagem flash
+$this->flash('success', 'Item salvo!');
+
+// Obter e limpar mensagem
+$message = $this->flash('success');
+```
+
+### Inicialização
+
+Existem duas maneiras de inicializar o Lapa Framework:
+
+1. Inicialização direta no index.php:
 ```php
 $app = new Lapa\Lapa([
-    'debug' => true,      // Enable debug mode
-    'secure' => false,    // HTTPS requirement
-    'errors' => true,     // Show detailed errors
-    'timezone' => 'UTC'   // Default timezone
+    'debug' => true,      // Ativar modo debug
+    'secure' => false,    // Requisito de HTTPS
+    'errors' => true,     // Mostrar erros detalhados
+    'timezone' => 'UTC'   // Fuso horário padrão
 ], [
-    // Database configuration (optional)
+    // Configuração de banco de dados (opcional)
     'type' => 'mysql',
     'database' => 'my_database',
     'host' => 'localhost',
@@ -453,7 +518,7 @@ $app = new Lapa\Lapa([
 ]);
 ```
 
-2. Using config.php file:
+2. Usando o arquivo config.php:
 ```php
 // config.php
 return [
@@ -475,46 +540,46 @@ return [
 $app = new Lapa\Lapa();
 ```
 
-The framework has sensible defaults for all configuration options:
+O framework possui padrões sensíveis para todas as opções de configuração:
 - debug: false
 - secure: false
 - errors: true
 - timezone: 'UTC'
 - upload.max_size: 5MB
-- cache.ttl: 1 hour
+- cache.ttl: 1 hora
 
-### Requirements
+### Requisitos
 
 - PHP 7.4+
 - Composer
-- PHP Extensions:
+- Extensões PHP:
   - JSON
-  - PDO (optional)
+  - PDO (opcional)
   - Fileinfo
 
 ## Changelog
 
-### Version 1.5.0
-- Removed middleware complexity in favor of helpers
-- Improved authentication system
-- Added import() method for external API integration
-- Enhanced request/response handling
-- Added more test coverage
-- Code cleanup and optimization
-- Updated documentation
+### Versão 1.5.0
+- Removida a complexidade do middleware em favor dos helpers
+- Sistema de autenticação melhorado
+- Adicionado método import() para integração com APIs externas
+- Melhorado o tratamento de requisições/respostas
+- Adicionada mais cobertura de testes
+- Limpeza e otimização de código
+- Documentação atualizada
 
-## License
+## Licença
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+Licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-## Contributing
+## Contribuindo
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Faça um fork do projeto
+2. Crie sua branch de feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
 
-## Author
+## Autor
 
 Daniel Medina - [@jdanielcmedina](https://twitter.com/jdanielcmedina)
