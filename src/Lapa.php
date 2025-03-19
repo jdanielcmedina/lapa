@@ -1875,7 +1875,7 @@ class Lapa {
 
         return $html . '</div></body></html>';
     }
-}
+
 
     /**
      * Magic method to handle dynamic function calls
@@ -1906,3 +1906,5 @@ class Lapa {
         }
         $this->{$name} = $value;
     }
+}
+
