@@ -1818,26 +1818,51 @@ class Lapa {
         $routesPath = $routesPath ?? $this->paths['routes'] ?? dirname(__DIR__) . '/routes';
         $docs = [];
         
+        if (!is_dir($routesPath)) {
+            return '<h1>No routes directory found</h1>';
+        }
+
         // Scan route files and extract documentation
         foreach (glob($routesPath . '/*.php') as $file) {
-            preg_match_all('/@api\s+(.*?)\s*\*\//s', file_get_contents($file), $matches);
+            $content = @file_get_contents($file);
+            if (!$content) continue;
+
+            preg_match_all('/@api\s+(.*?)\s*\*\//s', $content, $matches);
             if (empty($matches[1])) continue;
 
             // Parse each documentation block
             foreach ($matches[1] as $block) {
+                if (empty($block)) continue;
+                
                 $endpoint = [];
                 foreach (explode("\n", $block) as $line) {
+                    if (empty($line)) continue;
+
                     // Extract API method, path and description
                     if (preg_match('/@api\s+{(\w+)}\s+([^\s]+)\s+(.*)/', $line, $m)) {
-                        $endpoint = ['method' => $m[1], 'path' => $m[2], 'description' => $m[3]];
+                        $endpoint = [
+                            'method' => $m[1] ?? 'GET',
+                            'path' => $m[2] ?? '/',
+                            'description' => $m[3] ?? ''
+                        ];
                     }
                     // Extract parameters
                     if (preg_match('/@apiParam\s+{([^}]+)}\s+([^\s]+)\s+(.*)/', $line, $m)) {
-                        $endpoint['params'][] = ['type' => $m[1], 'name' => $m[2], 'description' => $m[3]];
+                        if (!isset($endpoint['params'])) $endpoint['params'] = [];
+                        $endpoint['params'][] = [
+                            'type' => $m[1] ?? 'mixed',
+                            'name' => $m[2] ?? '',
+                            'description' => $m[3] ?? ''
+                        ];
                     }
                     // Extract success responses
                     if (preg_match('/@apiSuccess\s+{([^}]+)}\s+([^\s]+)\s+(.*)/', $line, $m)) {
-                        $endpoint['success'][] = ['type' => $m[1], 'name' => $m[2], 'description' => $m[3]];
+                        if (!isset($endpoint['success'])) $endpoint['success'] = [];
+                        $endpoint['success'][] = [
+                            'type' => $m[1] ?? 'mixed',
+                            'name' => $m[2] ?? '',
+                            'description' => $m[3] ?? ''
+                        ];
                     }
                 }
                 if (!empty($endpoint)) $docs[] = $endpoint;
