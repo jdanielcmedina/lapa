@@ -1876,7 +1876,6 @@ class Lapa {
         return $html . '</div></body></html>';
     }
 
-
     /**
      * Magic method to handle dynamic function calls
      * @param string $name
