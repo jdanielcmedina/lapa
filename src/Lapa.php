@@ -86,15 +86,62 @@ class Lapa {
      */
     private $statusCode = 200;
 
+    private const ERROR_STYLES = '
+        body { 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #dc3545;
+            color: white;
+            padding: 2rem;
+        }
+        .content { padding: 2rem; }
+        .error-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin: 0;
+        }
+        .error-message {
+            font-size: 16px;
+            margin: 1rem 0;
+            color: #666;
+        }
+        .error-details {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        .stack-trace {
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            background: #f1f3f5;
+            padding: 1rem;
+            border-radius: 4px;
+            color: #666;
+        }
+    ';
+
     public function __construct($config = [], $database = null) {
         try {
             // Define base paths
-            $root = $this->findProjectRoot();
+            $root = realpath(dirname(dirname(__DIR__))) . DS;
             
             $this->paths = [
-                'root'    => $root,
-                'routes'  => $root . 'routes',
-                'views'   => $root . 'views',
                 'storage' => [
                     'cache'   => $root . 'storage/cache',
                     'logs'    => $root . 'storage/logs',
@@ -153,16 +200,19 @@ class Lapa {
             date_default_timezone_set($this->config['timezone']);
 
             // Initialize components
-            $this->initializeComponents();
+            $this->init();
             
-            // Initialize error handler
-            $this->errors = new Errors($this);
+            // Carregar recursos
+            $this->load('routes');
+            $this->load('helpers');
+            
+            // Register request handler se não estiver em teste
+            if (!isset($this->config['test'])) {
+                $this->handleRequest();
+            }
             
         } catch (\Throwable $e) {
-            if ($this->config['debug']) {
-                throw $e;
-            }
-            die("Internal server error");
+            $this->debug($e->getMessage(), 500, $e->getTraceAsString());
         }
     }
 
@@ -240,63 +290,63 @@ class Lapa {
         @file_put_contents($privatePath . '/.htaccess', 'Deny from all');
     }
 
-    /**
-     * Check if application is configured
-     * @return bool
-     */
-    public function isConfigured() {
-        return file_exists(CONFIG . DS . 'config' . EXT);
-    }
-
-    private function initializeComponents() {
-        // Initialize database if configured
-        if (isset($this->config['db'])) {
-            try {
-                $this->db = new \Medoo\Medoo($this->config['db']);
-            } catch (\PDOException $e) {
-                throw new \Exception("Database connection failed: " . $e->getMessage());
+    private function init() {
+        try {
+            // Initialize database if configured
+            if (isset($this->config['db'])) {
+                try {
+                    $this->db = new \Medoo\Medoo($this->config['db']);
+                } catch (\PDOException $e) {
+                    $this->log("DB connection error: " . $e->getMessage(), "error");
+                    if ($this->config['debug']) {
+                        throw $e;
+                    }
+                    throw new \Exception("Error connecting to database");
+                }
             }
-        }
-        
-        // Initialize mailer if configured
-        if (isset($this->config['mail']) && $this->config['mail']['enabled']) {
-            try {
-                $this->mailer = new \PHPMailer\PHPMailer\PHPMailer(true);
-                $mailConfig = $this->config['mail'];
-                
-                // Server settings
-                $this->mailer->SMTPDebug = $mailConfig['debug'];
-                $this->mailer->isSMTP();
-                $this->mailer->Host = $mailConfig['host'];
-                $this->mailer->Port = $mailConfig['port'];
-                $this->mailer->SMTPSecure = $mailConfig['secure'];
-                $this->mailer->SMTPAuth = $mailConfig['auth'];
-                $this->mailer->Username = $mailConfig['username'];
-                $this->mailer->Password = $mailConfig['password'];
-                
-                // Default sender
-                $this->mailer->setFrom(
-                    $mailConfig['fromEmail'],
-                    $mailConfig['fromName']
-                );
-                
-                $this->log("Mailer initialized", "debug");
-            } catch (\PHPMailer\PHPMailer\Exception $e) {
-                $this->log("Mailer initialization failed: " . $e->getMessage(), "error");
-                throw $e;
-            }
-        }
-        
-        // Load routes if not in test mode
-        if (!isset($this->config['test'])) {
-            $this->loadRoutes();
             
-            // Register request handler
-            register_shutdown_function([$this, 'handleRequest']);
-        }
+            // Initialize mailer if configured
+            if (isset($this->config['mail']) && $this->config['mail']['enabled']) {
+                try {
+                    $this->mailer = new \PHPMailer\PHPMailer\PHPMailer(true);
+                    $mailConfig = $this->config['mail'];
+                    
+                    // Server settings
+                    $this->mailer->SMTPDebug = $mailConfig['debug'];
+                    $this->mailer->isSMTP();
+                    $this->mailer->Host = $mailConfig['host'];
+                    $this->mailer->Port = $mailConfig['port'];
+                    $this->mailer->SMTPSecure = $mailConfig['secure'];
+                    $this->mailer->SMTPAuth = $mailConfig['auth'];
+                    $this->mailer->Username = $mailConfig['username'];
+                    $this->mailer->Password = $mailConfig['password'];
+                    
+                    // Default sender
+                    $this->mailer->setFrom(
+                        $mailConfig['fromEmail'],
+                        $mailConfig['fromName']
+                    );
+                    
+                    $this->log("Mailer initialized", "debug");
+                } catch (\PHPMailer\PHPMailer\Exception $e) {
+                    $this->log("Mailer initialization failed: " . $e->getMessage(), "error");
+                    throw $e;
+                }
+            }
+            
+            // Load routes if not in test mode
+            if (!isset($this->config['test'])) {
+                $this->loadRoutes();
+                
+                // Register request handler
+                register_shutdown_function([$this, 'handleRequest']);
+            }
 
-        // Load plugins
-        $this->loadPlugins();
+            // Load plugins
+            $this->loadPlugins();
+        } catch (\Throwable $e) {
+            Errors::render($e->getMessage());
+        }
     }
 
     /**
@@ -495,45 +545,49 @@ class Lapa {
      * @throws \Exception If view file not found
      */
     public function view($file, $data = [], $code = null) {
-        if ($code !== null) {
-            $this->status($code);
-        }
-
-        http_response_code($this->statusCode);
-
-        // Add .php extension if not provided
-        if (!pathinfo($file, PATHINFO_EXTENSION)) {
-            $file .= '.php';
-        }
-
-        // Check if absolute path or relative to views directory
-        $viewPath = $file;
-        if (!file_exists($viewPath)) {
-            $viewPath = $this->storage('views') . '/' . ltrim($file, '/');
-        }
-
-        // Check if file exists
-        if (!file_exists($viewPath)) {
-            throw new \Exception("View not found: {$file}");
-        }
-
-        // Extrair variáveis para o escopo local
-        extract($data);
-
-        // Iniciar buffer de output
-        ob_start();
-
         try {
-            include $viewPath;
-            $content = ob_get_clean();
-            
-            echo $content;
-            $this->statusCode = 200;
-                        
-            return null;
+            if ($code !== null) {
+                $this->status($code);
+            }
+
+            http_response_code($this->statusCode);
+
+            // Add .php extension if not provided
+            if (!pathinfo($file, PATHINFO_EXTENSION)) {
+                $file .= '.php';
+            }
+
+            // Check if absolute path or relative to views directory
+            $viewPath = $file;
+            if (!file_exists($viewPath)) {
+                $viewPath = $this->storage('views') . '/' . ltrim($file, '/');
+            }
+
+            // Check if file exists
+            if (!file_exists($viewPath)) {
+                throw new \Exception("View not found: {$file}");
+            }
+
+            // Extrair variáveis para o escopo local
+            extract($data);
+
+            // Iniciar buffer de output
+            ob_start();
+
+            try {
+                include $viewPath;
+                $content = ob_get_clean();
+                
+                echo $content;
+                $this->statusCode = 200;
+                            
+                return null;
+            } catch (\Throwable $e) {
+                ob_end_clean();
+                throw $e;
+            }
         } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
+            Errors::render($e->getMessage());
         }
     }
 
@@ -558,6 +612,37 @@ class Lapa {
 
         extract($data);
         include $partialPath;
+    }
+
+
+    /**
+     * Render view with layout
+     * 
+     * @param string $view View file path
+     * @param string $layout Layout file path
+     * @param array $data Data to pass to view and layout
+     * @param int|null $code HTTP status code
+     * @return null
+     */
+    public function layout($view, $layout = 'default', $data = [], $code = null) {
+        if ($code !== null) {
+            $this->status($code);
+        }
+
+        // Start output buffering
+        ob_start();
+
+        // Render view
+        $this->view($view, $data);
+        
+        // Get view content
+        $content = ob_get_clean();
+        
+        // Add content to data
+        $data['content'] = $content;
+        
+        // Render layout with view content
+        return $this->view('layouts/' . $layout, $data, $code);
     }
 
     /**
@@ -1371,56 +1456,41 @@ class Lapa {
     }
 
     /**
-     * Load route files from routes directory
-     * 
-     * @param string $routesPath Path to routes directory
+     * Load resources recursively (routes, helpers, etc)
+     * @param string $type Resource type to load (routes|helpers)
      * @return self
      */
-    public function loadRoutes($routesPath = null) {
-        $routesPath = $routesPath ?? ROUTES;
+    public function load($type) {
+        $basePath = $this->paths['root'] ?? dirname(__DIR__);
+        $path = $basePath . '/' . $type;
 
-        if (!is_dir($routesPath)) {
-            $this->log("Routes directory not found: $routesPath", "warning");
+        if (!is_dir($path)) {
+            $this->log("Directory not found: $path", "warning");
             return $this;
         }
 
-        $this->loadRoutesRecursively($routesPath);
-        return $this;
-    }
-
-    /**
-     * Recursively load routes from directory
-     * 
-     * @param string $dir Directory path
-     * @return void
-     */
-    private function loadRoutesRecursively($dir) {
-        // Add safety check
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        // Get all PHP files and directories with safety check
-        $items = glob($dir . '/*');
+        // Carregar arquivos recursivamente
+        $items = glob($path . '/*');
         if (!is_array($items)) {
-            $this->log("Failed to read directory: $dir", "error");
-            return;
+            $this->log("Failed to read directory: $path", "error");
+            return $this;
         }
 
         foreach ($items as $item) {
             if (is_file($item) && pathinfo($item, PATHINFO_EXTENSION) === 'php') {
-                // Load PHP file
                 try {
-                    $app = $this;
-                    $this->log("Loading route file: $item", "debug");
+                    $this->log("Loading $type file: $item", "debug");
+                    $app = $this; // Para uso nos arquivos carregados
                     require $item;
                 } catch (\Throwable $e) {
-                    $this->log("Failed to load route file: $item - " . $e->getMessage(), 'error');
+                    $this->log("Failed to load $type file: $item - " . $e->getMessage(), 'error');
                 }
             } elseif (is_dir($item)) {
-                $this->loadRoutesRecursively($item);
+                $this->load($type . '/' . basename($item));
             }
         }
+
+        return $this;
     }
 
     // Método para obter path do storage
@@ -1501,132 +1571,103 @@ class Lapa {
      *
      * @return void
      */
-    public function debug() {
-        error_log("=== DEBUG LAPA ===");
-        error_log("Groups: " . print_r($this->currentGroup, true));
-        error_log("Routes: " . print_r($this->routes, true));
-        error_log("=================");
+    public function debug($message, $code = 500, $details = null) {
+        // CLI output
+        if (php_sapi_name() === 'cli') {
+            echo "\n[ERROR] $message\n";
+            if ($details && $this->config['debug']) {
+                echo "$details\n";
+            }
+            exit($code);
+        }
+
+        // HTTP headers
+        if (!headers_sent()) {
+            http_response_code($code);
+            header('Content-Type: text/html; charset=utf-8');
+        }
+
+        // Em produção, erros 500+ mostram mensagem genérica
+        $showMessage = $code < 500 || $this->config['debug'] 
+            ? $message 
+            : 'An unexpected error occurred. Please try again later.';
+
+        echo '<!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error ' . $code . '</title>
+            <style>' . self::ERROR_STYLES . '</style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1 class="error-title">Error ' . $code . '</h1>
+                </div>
+                <div class="content">
+                    <div class="error-message">' . $showMessage . '</div>
+                    ' . ($this->config['debug'] && $details ? '
+                    <div class="error-details">
+                        <div class="stack-trace">' . $details . '</div>
+                    </div>
+                    ' : '') . '
+                </div>
+            </div>
+        </body>
+        </html>';
+        
+        exit($code);
     }
 
     public function handleRequest() {
-        // Verificar se está configurado
-        if (!$this->isConfigured()) {
-            return $this->raw('
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Lapa Framework - Setup Required</title>
-                    <style>
-                        body { 
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                            max-width: 800px; 
-                            margin: 0 auto;
-                            padding: 0;
-                            line-height: 1.6;
-                            color: #333;
-                        }
-                        .header {
-                            background: linear-gradient(to right, #ff8c00, #ff6b00);
-                            padding: 20px;
-                            color: white;
-                            margin-bottom: 40px;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        }
-                        .content {
-                            padding: 0 20px;
-                        }
-                        h1 {
-                            margin: 0;
-                            font-size: 2.5em;
-                        }
-                        pre {
-                            background: #f8f9fa;
-                            padding: 20px;
-                            border-radius: 8px;
-                            border: 1px solid #e9ecef;
-                            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-                            font-family: Fira Code, Consolas, monospace;
-                        }
-                        code {
-                            background: #f8f9fa;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            font-size: 0.9em;
-                        }
-                        p {
-                            color: #495057;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h1>Lapa Framework</h1>
-                    </div>
-                    <div class="content">
-                        <p>The application needs to be configured before it can be used.</p>
-                        <p>Look for the file <code>config.example.php</code> in the root folder and copy it to <code>storage/app/config.php</code></p>
-                        <p>Then modify the configuration values as needed.</p>
-                        <p>Example path:</p>
-                        <pre>
-storage/
-  app/
-      config.php    <-- Copy config.example.php here
-                        </pre>
-                        <p>Once you copy and configure the file, this message will disappear.</p>
-                    </div>
-                </body>
-                </html>
-            ');
-        }
+        try {
+            $method = $_SERVER['REQUEST_METHOD'];
+            $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+            $uri = $uri === '/' ? '/' : rtrim($uri, '/');
+            $host = $_SERVER['HTTP_HOST'] ?? '';
 
-        // Continuar com o processamento normal da rota
-        $method = $_SERVER['REQUEST_METHOD'];
-        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        
-        // Remover barra final exceto para root '/'
-        $uri = $uri === '/' ? '/' : rtrim($uri, '/');
-        
-        $host = $_SERVER['HTTP_HOST'] ?? '';
-
-        if (isset($this->routes[$method])) {
-            foreach ($this->routes[$method] as $pattern => $route) {
-                // Verificar virtual host primeiro
-                if (!empty($route['vhost']) && $route['vhost'] !== $host) {
-                    continue;
-                }
-
-                // Match route pattern
-                $regex = preg_replace('/:[a-zA-Z]+/', '([^/]+)', $pattern);
-                $regex = str_replace('/', '\/', $regex);
-                $regex = '/^' . $regex . '$/';
-                
-                if (preg_match($regex, $uri, $matches)) {
-                    // Extract params
-                    preg_match_all('/:([a-zA-Z]+)/', $pattern, $paramNames);
-                    array_shift($matches);
-                    $this->currentParams = array_combine($paramNames[1] ?? [], $matches);
-                    
-                    // Execute route callback
-                    $response = $route['callback']($this);
-                    
-                    // Handle response
-                    if ($response !== null) {
-                        if (is_array($response)) {
-                            if (!headers_sent()) {
-                                header('Content-Type: application/json; charset=utf-8');
-                            }
-                            echo json_encode($response);
-                        } else {
-                            echo $response;
-                        }
+            if (isset($this->routes[$method])) {
+                foreach ($this->routes[$method] as $pattern => $route) {
+                    // Verificar virtual host
+                    if (!empty($route['vhost']) && $route['vhost'] !== $host) {
+                        continue;
                     }
-                    return;
+
+                    // Match route pattern
+                    $regex = preg_replace('/:[a-zA-Z]+/', '([^/]+)', $pattern);
+                    $regex = str_replace('/', '\/', $regex);
+                    $regex = '/^' . $regex . '$/';
+
+                    if (preg_match($regex, $uri, $matches)) {
+                        // Extract params
+                        preg_match_all('/:([a-zA-Z]+)/', $pattern, $paramNames);
+                        array_shift($matches);
+                        $this->currentParams = array_combine($paramNames[1] ?? [], $matches);
+                        
+                        // Execute route callback
+                        $response = $route['callback']($this);
+                        
+                        // Handle response
+                        if ($response !== null) {
+                            if (is_array($response)) {
+                                if (!headers_sent()) {
+                                    header('Content-Type: application/json; charset=utf-8');
+                                }
+                                echo json_encode($response);
+                            } else {
+                                echo $response;
+                            }
+                        }
+                        return;
+                    }
                 }
             }
+
+            // Nenhuma rota encontrada
+            $this->debug('Not Found', 404);
+            
+        } catch (\Throwable $e) {
+            $this->debug($e->getMessage(), 500, $e->getTraceAsString());
         }
-        
-        // 404 handler
-        $this->error('Not Found', 404);
     }
 
     /**
@@ -1679,36 +1720,6 @@ storage/
     }
 
     /**
-     * Magic method to handle dynamic function calls
-     * @param string $name
-     * @param array $arguments
-     * @return mixed
-     */
-    public function __call($name, $arguments) {
-        if (!isset($this->{$name})) {
-            throw new \Exception("Method {$name}() does not exist");
-        }
-        
-        if (!is_callable($this->{$name})) {
-            throw new \Exception("Property {$name} exists but is not callable");
-        }
-
-        return call_user_func_array($this->{$name}, $arguments);
-    }
-
-    /**
-     * Magic method to handle property assignment
-     * @param string $name
-     * @param mixed $value
-     */
-    public function __set($name, $value) {
-        if (isset($this->{$name})) {
-            throw new \Exception("Helper '{$name}' already exists");
-        }
-        $this->{$name} = $value;
-    }
-
-    /**
      * Get value from $_GET
      * @param string|null $key Key to get
      * @param mixed $default Default value if key not found
@@ -1741,118 +1752,157 @@ storage/
      * @return mixed Response data
      */
     public function import($url, $options = []) {
-        $defaults = [
-            'method' => 'GET',
-            'headers' => [],
-            'data' => null,
-            'timeout' => 30,
-            'verify_ssl' => true,
-            'json' => true
-        ];
+        try {
+            $defaults = [
+                'method' => 'GET',
+                'headers' => [],
+                'data' => null,
+                'timeout' => 30,
+                'verify_ssl' => true,
+                'json' => true
+            ];
 
-        $opts = array_merge($defaults, $options);
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $opts['timeout']);
-        
-        if (!$opts['verify_ssl']) {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        }
-        
-        // Set method
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($opts['method']));
-        
-        // Set headers
-        if (!empty($opts['headers'])) {
-            $headers = [];
-            foreach ($opts['headers'] as $key => $value) {
-                $headers[] = "$key: $value";
-            }
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        }
-        
-        // Set POST/PUT data
-        if ($opts['data']) {
-            $data = is_array($opts['data']) ? http_build_query($opts['data']) : $opts['data'];
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        }
-        
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        $info = curl_getinfo($ch);
-        
-        curl_close($ch);
-        
-        if ($error) {
-            throw new \Exception("API request failed: $error");
-        }
-        
-        return $opts['json'] ? json_decode($response, true) : $response;
-    }
-
-    /**
-     * Load helpers recursively from directory
-     * 
-     * @param string $dir Directory path
-     * @return void
-     */
-    private function loadHelpersRecursively($dir) {
-        // Suprimir warnings com @
-        $items = @glob($dir . '/*');
-        
-        // Se não houver items, retorna silenciosamente
-        if (!is_array($items)) {
-            return;
-        }
-
-        foreach ($items as $item) {
-            if (!$item) continue;
+            $opts = array_merge($defaults, $options);
             
-            if (@is_file($item) && pathinfo($item, PATHINFO_EXTENSION) === 'php') {
-                // Load PHP file
-                try {
-                    $this->log("Loading helper file: $item", "debug");
-                    @require $item;
-                } catch (\Throwable $e) {
-                    $this->log("Failed to load helper file: $item - " . $e->getMessage(), 'error');
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $opts['timeout']);
+            
+            if (!$opts['verify_ssl']) {
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            }
+            
+            // Set method
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($opts['method']));
+            
+            // Set headers
+            if (!empty($opts['headers'])) {
+                $headers = [];
+                foreach ($opts['headers'] as $key => $value) {
+                    $headers[] = "$key: $value";
                 }
-            } elseif (@is_dir($item)) {
-                $this->loadHelpersRecursively($item);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            }
+            
+            // Set POST/PUT data
+            if ($opts['data']) {
+                $data = is_array($opts['data']) ? http_build_query($opts['data']) : $opts['data'];
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            }
+            
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
+            $info = curl_getinfo($ch);
+            
+            curl_close($ch);
+            
+            if ($error) {
+                throw new \Exception("API request failed: $error");
+            }
+            
+            return $opts['json'] ? json_decode($response, true) : $response;
+        } catch (\Throwable $e) {
+            Errors::render($e->getMessage());
+        }
+    }
+
+
+    /**
+     * Generate API documentation from route files
+     * @param string|null $routesPath Custom routes path
+     * @return string Generated HTML documentation
+     */
+    public function docs($routesPath = null) {
+        $routesPath = $routesPath ?? $this->paths['routes'] ?? dirname(__DIR__) . '/routes';
+        $docs = [];
+        
+        // Scan route files and extract documentation
+        foreach (glob($routesPath . '/*.php') as $file) {
+            preg_match_all('/@api\s+(.*?)\s*\*\//s', file_get_contents($file), $matches);
+            if (empty($matches[1])) continue;
+
+            // Parse each documentation block
+            foreach ($matches[1] as $block) {
+                $endpoint = [];
+                foreach (explode("\n", $block) as $line) {
+                    // Extract API method, path and description
+                    if (preg_match('/@api\s+{(\w+)}\s+([^\s]+)\s+(.*)/', $line, $m)) {
+                        $endpoint = ['method' => $m[1], 'path' => $m[2], 'description' => $m[3]];
+                    }
+                    // Extract parameters
+                    if (preg_match('/@apiParam\s+{([^}]+)}\s+([^\s]+)\s+(.*)/', $line, $m)) {
+                        $endpoint['params'][] = ['type' => $m[1], 'name' => $m[2], 'description' => $m[3]];
+                    }
+                    // Extract success responses
+                    if (preg_match('/@apiSuccess\s+{([^}]+)}\s+([^\s]+)\s+(.*)/', $line, $m)) {
+                        $endpoint['success'][] = ['type' => $m[1], 'name' => $m[2], 'description' => $m[3]];
+                    }
+                }
+                if (!empty($endpoint)) $docs[] = $endpoint;
             }
         }
+
+        // Generate HTML documentation
+        $html = '<html><head><title>API Documentation</title><style>' 
+             . self::ERROR_STYLES 
+             . '.endpoint{margin-bottom:2rem}'
+             . '.method{display:inline-block;padding:3px 8px;border-radius:4px}'
+             . '.method.get{background:#61affe}.method.post{background:#49cc90}'
+             . '.method.put{background:#fca130}.method.delete{background:#f93e3e}'
+             . '.params table{width:100%;border-collapse:collapse}'
+             . '.params td,.params th{padding:8px;border:1px solid #ddd}'
+             . '</style></head><body><div class="container">';
+
+        foreach ($docs as $endpoint) {
+            $html .= '<div class="endpoint">'
+                  . '<h2><span class="method ' . strtolower($endpoint['method']) . '">' 
+                  . $endpoint['method'] . '</span> ' . $endpoint['path'] . '</h2>'
+                  . '<p>' . $endpoint['description'] . '</p>';
+
+            if (!empty($endpoint['params'])) {
+                $html .= '<h3>Parameters</h3><div class="params"><table>'
+                      . '<tr><th>Name</th><th>Type</th><th>Description</th></tr>';
+                foreach ($endpoint['params'] as $param) {
+                    $html .= '<tr><td>' . $param['name'] . '</td><td>' . $param['type'] 
+                          . '</td><td>' . $param['description'] . '</td></tr>';
+                }
+                $html .= '</table></div>';
+            }
+            $html .= '</div>';
+        }
+
+        return $html . '</div></body></html>';
+    }
+}
+
+    /**
+     * Magic method to handle dynamic function calls
+     * @param string $name
+     * @param array $arguments
+     * @return mixed
+     */
+    public function __call($name, $arguments) {
+        if (!isset($this->{$name})) {
+            throw new \Exception("Method {$name}() does not exist");
+        }
+        
+        if (!is_callable($this->{$name})) {
+            throw new \Exception("Property {$name} exists but is not callable");
+        }
+
+        return call_user_func_array($this->{$name}, $arguments);
     }
 
     /**
-     * Render view with layout
-     * 
-     * @param string $view View file path
-     * @param string $layout Layout file path
-     * @param array $data Data to pass to view and layout
-     * @param int|null $code HTTP status code
-     * @return null
+     * Magic method to handle property assignment
+     * @param string $name
+     * @param mixed $value
      */
-    public function layout($view, $layout = 'default', $data = [], $code = null) {
-        if ($code !== null) {
-            $this->status($code);
+    public function __set($name, $value) {
+        if (isset($this->{$name})) {
+            throw new \Exception("Helper '{$name}' already exists");
         }
-
-        // Start output buffering
-        ob_start();
-
-        // Render view
-        $this->view($view, $data);
-        
-        // Get view content
-        $content = ob_get_clean();
-        
-        // Add content to data
-        $data['content'] = $content;
-        
-        // Render layout with view content
-        return $this->view('layouts/' . $layout, $data, $code);
+        $this->{$name} = $value;
     }
-
-}

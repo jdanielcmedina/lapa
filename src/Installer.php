@@ -3,33 +3,36 @@ namespace Lapa;
 
 class Installer {
     public static function createStructure($projectPath = null) {
-        // Se não passado, usar diretório atual
-        $projectPath = $projectPath ?? getcwd();
-        
-        echo "Creating Lapa structure in: $projectPath\n";
-        
-        $directories = [
-            'public',
-            'routes',
-            'views/partials',  // Aqui já é criada a pasta partials
-            'storage/cache',
-            'storage/logs',
-            'storage/uploads',
-            'storage/temp',
-            'helpers',
-            'plugins'
-        ];
+        try {
+            // Se não passado, usar diretório atual
+            $projectPath = $projectPath ?? getcwd();
+            
+            echo "Creating Lapa structure in: $projectPath\n";
+            
+            $directories = [
+                'public',
+                'routes',
+                'views/partials',  // Aqui já é criada a pasta partials
+                'storage/cache',
+                'storage/logs',
+                'storage/uploads',
+                'storage/temp',
+                'helpers',
+                'plugins'
+            ];
 
-        foreach ($directories as $dir) {
-            $path = $projectPath . '/' . $dir;
-            if (!is_dir($path)) {
-                @mkdir($path, 0755, true);
+            foreach ($directories as $dir) {
+                $path = $projectPath . '/' . $dir;
+                if (!is_dir($path)) {
+                    if (!@mkdir($path, 0755, true)) {
+                        throw new \Exception("Could not create directory: $path");
+                    }
+                }
             }
-        }
 
-        // Criar arquivos base
-        $files = [
-            'public/index.php' => "<?php
+            // Criar arquivos base
+            $files = [
+                'public/index.php' => "<?php
 require '../vendor/autoload.php';
 
 \$app = new \\Lapa\\Lapa([
@@ -62,24 +65,32 @@ require '../vendor/autoload.php';
         'password' => ''
     ]
 ]);",
-            'public/.htaccess' => "RewriteEngine On\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteRule ^ index.php [QSA,L]",
-            'routes/web.php' => "<?php\n\$app->on('GET /', function() {\n    return ['message' => 'Welcome to Lapa!'];\n});"
-        ];
+                'public/.htaccess' => "RewriteEngine On\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteRule ^ index.php [QSA,L]",
+                'routes/web.php' => "<?php\n\$app->on('GET /', function() {\n    return ['message' => 'Welcome to Lapa!'];\n});"
+            ];
 
-        foreach ($files as $file => $content) {
-            $path = $projectPath . '/' . $file;
-            if (!file_exists($path)) {
-                if (!is_dir(dirname($path))) {
-                    mkdir(dirname($path), 0755, true);
+            foreach ($files as $file => $content) {
+                $path = $projectPath . '/' . $file;
+                if (!file_exists($path)) {
+                    if (!is_dir(dirname($path))) {
+                        if (!mkdir(dirname($path), 0755, true)) {
+                            throw new \Exception("Could not create directory: " . dirname($path));
+                        }
+                    }
+                    if (file_put_contents($path, $content) === false) {
+                        throw new \Exception("Could not write to file: $path");
+                    }
                 }
-                file_put_contents($path, $content);
             }
+            
+            echo "\n";
+            echo "===========================================\n";
+            echo "🚀 LAPA FRAMEWORK INSTALLED SUCCESSFULLY! 🚀\n";
+            echo "===========================================\n";
+            echo "\n";
+        } catch (\Exception $e) {
+            echo "\n[ERROR] " . $e->getMessage() . "\n";
+            exit(1);
         }
-        
-        echo "\n";
-        echo "===========================================\n";
-        echo "🚀 LAPA FRAMEWORK INSTALLED SUCCESSFULLY! 🚀\n";
-        echo "===========================================\n";
-        echo "\n";
     }
 }
