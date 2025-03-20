@@ -54,7 +54,11 @@ class Lapa {
      * File permissions for different storage types
      * @var array
      */
-    private $perm;
+    private $perm = [
+        'folder'  => 0755,
+        'private' => 0600,
+        'public'  => 0644
+    ];
 
     /**
      * Cache handler instance
@@ -156,6 +160,16 @@ class Lapa {
                 ]
             ];
 
+            // Criar diretórios de storage se não existirem
+            foreach ($this->paths['storage'] as $type => $path) {
+                if (!is_dir($path)) {
+                    @mkdir($path, $this->perm['folder'], true);
+                }
+                if ($type === 'uploads') {
+                    @chmod($path, $this->perm['public']);
+                }
+            }
+
             // Adicionar log para debug do path
             $this->log("Routes path: " . $this->paths['routes'], "debug");
 
@@ -233,67 +247,6 @@ class Lapa {
         }
         
         return $this->paths[$key] ?? null;
-    }
-
-    /**
-     * Find the project root directory
-     * @return string
-     */
-    private function findProjectRoot() {
-        // Começar pelo diretório atual
-        $dir = getcwd();
-        
-        // Se estamos em public/, subir um nível
-        if (basename($dir) === 'public') {
-            $dir = dirname($dir);
-        }
-        
-        // Procurar por composer.json ou vendor/
-        while ($dir !== '/') {
-            if (file_exists($dir . '/composer.json') || is_dir($dir . '/vendor')) {
-                return rtrim($dir, '/') . DS;
-            }
-            $dir = dirname($dir);
-        }
-        
-        // Se não encontrar, usar o diretório atual
-        return getcwd() . DS;
-    }
-
-    private function createDefaultConfig($configPath, $examplePath) {
-        // Ensure directory exists
-        $configDir = dirname($configPath);
-        if (!is_dir($configDir)) {
-            mkdir($configDir, $this->perm['folder'], true);
-            chmod($configDir, $this->perm['private']);
-        }
-
-        // Copy example config
-        copy($examplePath, $configPath);
-        chmod($configPath, $this->perm['private']);
-    }
-
-    private function checkStorage() {
-        $base = dirname(__DIR__);
-        
-        // Create basic structure
-        foreach ($this->storagePaths as $type => $path) {
-            $fullPath = $base . '/' . $path;
-            if (!is_dir($fullPath)) {
-                @mkdir($fullPath, $this->perm['folder'], true);
-            }
-
-            // Apply specific permissions
-            if ($type === 'private') {
-                @chmod($fullPath, $this->perm['private']);
-            } else if ($type === 'public' || $type === 'uploads') {
-                @chmod($fullPath, $this->perm['public']);
-            }
-        }
-
-        // Protect private folder
-        $privatePath = $base . '/' . $this->storagePaths['private'];
-        @file_put_contents($privatePath . '/.htaccess', 'Deny from all');
     }
 
     private function init() {
@@ -1267,7 +1220,7 @@ class Lapa {
             return $this;
         }
 
-        $logFile = $this->paths['storage']['logs'] . '/app.log';
+        $logFile = $this->.paths['storage']['logs'] . '/app.log';
         $date = date('Y-m-d H:i:s');
         $log = "[$date] [$level] $message" . PHP_EOL;
         
@@ -1689,7 +1642,7 @@ class Lapa {
         $longestMatch = 0;
 
         // Procura o handler mais específico baseado no grupo
-        foreach ($this->notFoundHandlers as $groupPrefix => $groupHandler) {
+        foreach ($this->.notFoundHandlers as $groupPrefix => $groupHandler) {
             if (strpos($uri, $groupPrefix) === 0) {
                 $prefixLength = strlen($groupPrefix);
                 if ($prefixLength > $longestMatch) {
