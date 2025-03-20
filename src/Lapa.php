@@ -138,10 +138,16 @@ class Lapa {
 
     public function __construct($config = [], $database = null) {
         try {
-            // Define base paths
-            $root = realpath(dirname(dirname(__DIR__))) . DS;
+            // Obter diretório raiz (um nível acima de public)
+            $root = dirname(getcwd()) . DIRECTORY_SEPARATOR;
             
+            // Removido o echo de debug
+
             $this->paths = [
+                'root'    => $root,
+                'routes'  => $root . 'routes',
+                'views'   => $root . 'views',
+                'helpers' => $root . 'helpers',  // Adicionado path dos helpers
                 'storage' => [
                     'cache'   => $root . 'storage/cache',
                     'logs'    => $root . 'storage/logs',
@@ -149,6 +155,9 @@ class Lapa {
                     'temp'    => $root . 'storage/temp'
                 ]
             ];
+
+            // Adicionar log para debug do path
+            $this->log("Routes path: " . $this->paths['routes'], "debug");
 
             // Default configurations
             $defaults = [
@@ -158,33 +167,15 @@ class Lapa {
                 'timezone' => 'UTC',
                 'upload' => [
                     'max_size' => 5242880, // 5MB
-                    'allowed_types' => [
-                        'image/jpeg',
-                        'image/png',
-                        'application/pdf'
-                    ]
+                    'allowed_types' => ['image/jpeg', 'image/png', 'application/pdf']
                 ],
-                'cache' => [
-                    'ttl' => 3600 // 1 hour
-                ],
+                'cache' => ['ttl' => 3600],
                 'cors' => [
                     'enabled' => false,
                     'origins' => '*',
                     'methods' => 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
                     'headers' => 'Content-Type, Authorization, X-Requested-With',
-                    'credentials' => false // Allow cookies/auth headers
-                ],
-                'mail' => [
-                    'enabled' => false,
-                    'host' => 'smtp.example.com',
-                    'port' => 587,
-                    'secure' => 'tls', // tls ou ssl
-                    'auth' => true,
-                    'username' => '',
-                    'password' => '',
-                    'fromName' => 'Lapa Framework',
-                    'fromEmail' => 'noreply@example.com',
-                    'debug' => 0 // 0 = off, 1 = client, 2 = client/server
+                    'credentials' => false
                 ]
             ];
 
@@ -197,19 +188,11 @@ class Lapa {
             }
 
             // Set timezone
-            date_default_timezone_set($this->config['timezone']);
+            date_default_timezone_set($this->config['timezone'] ?? 'UTC');
 
-            // Initialize components
+            // Initialize components and load resources
             $this->init();
-            
-            // Carregar recursos
-            $this->load('routes');
             $this->load('helpers');
-            
-            // Register request handler se não estiver em teste
-            if (!isset($this->config['test'])) {
-                $this->handleRequest();
-            }
             
         } catch (\Throwable $e) {
             $this->debug($e->getMessage(), 500, $e->getTraceAsString());
@@ -336,7 +319,7 @@ class Lapa {
             
             // Load routes if not in test mode
             if (!isset($this->config['test'])) {
-                $this->loadRoutes();
+                $this->load('routes');
                 
                 // Register request handler
                 register_shutdown_function([$this, 'handleRequest']);
@@ -345,7 +328,7 @@ class Lapa {
             // Load plugins
             $this->loadPlugins();
         } catch (\Throwable $e) {
-            Errors::render($e->getMessage());
+            $this->debug($e->getMessage(), 500, $e->getTraceAsString());
         }
     }
 
@@ -354,7 +337,7 @@ class Lapa {
      * @return void
      */
     private function loadPlugins() {
-        $pluginsPath = APP . 'plugins' . DS;
+        $pluginsPath = $this->paths['root'] . 'plugins' . DIRECTORY_SEPARATOR;
         
         if (!is_dir($pluginsPath)) {
             return;
@@ -560,7 +543,7 @@ class Lapa {
             // Check if absolute path or relative to views directory
             $viewPath = $file;
             if (!file_exists($viewPath)) {
-                $viewPath = $this->storage('views') . '/' . ltrim($file, '/');
+                $viewPath = $this->paths['views'] . '/' . ltrim($file, '/');
             }
 
             // Check if file exists
@@ -587,7 +570,7 @@ class Lapa {
                 throw $e;
             }
         } catch (\Throwable $e) {
-            Errors::render($e->getMessage());
+            $this->render($e->getMessage());
         }
     }
 
@@ -1251,25 +1234,21 @@ class Lapa {
     }
 
     /**
-     * Log utility
-     *
-     * @param string $message Log message
+     * Log message to file
+     * @param string $message Message to log
      * @param string $level Log level
      * @return self
      */
     public function log($message, $level = 'info') {
-        $logFile = $this->storage('logs') . '/' . date('Y-m-d') . '.log';
-        $logMessage = sprintf(
-            "[%s] %s: %s\n",
-            date('Y-m-d H:i:s'),
-            strtoupper($level),
-            is_array($message) ? json_encode($message) : $message
-        );
-        
-        // Silenciosamente tenta escrever log se o diretório existir
-        if (is_dir(dirname($logFile))) {
-            @error_log($logMessage, 3, $logFile);
+        if (!isset($this->paths['storage']['logs'])) {
+            return $this;
         }
+
+        $logFile = $this->paths['storage']['logs'] . '/app.log';
+        $date = date('Y-m-d H:i:s');
+        $log = "[$date] [$level] $message" . PHP_EOL;
+        
+        @file_put_contents($logFile, $log, FILE_APPEND);
         return $this;
     }
 
@@ -1461,32 +1440,31 @@ class Lapa {
      * @return self
      */
     public function load($type) {
-        $basePath = $this->paths['root'] ?? dirname(__DIR__);
-        $path = $basePath . '/' . $type;
-
-        if (!is_dir($path)) {
-            $this->log("Directory not found: $path", "warning");
+        $basePath = $this->paths[$type] ?? null;
+        
+        if (!$basePath) {
+            $this->log("[ERROR] Path not defined for type: $type", "error");
             return $this;
         }
 
-        // Carregar arquivos recursivamente
-        $items = glob($path . '/*');
-        if (!is_array($items)) {
-            $this->log("Failed to read directory: $path", "error");
+        $basePath = realpath($basePath);
+        if (!$basePath || !is_dir($basePath)) {
+            $this->log("[ERROR] Invalid directory: $basePath", "error");
             return $this;
         }
 
-        foreach ($items as $item) {
-            if (is_file($item) && pathinfo($item, PATHINFO_EXTENSION) === 'php') {
+        $files = scandir($basePath);
+        
+        foreach ($files as $file) {
+            if (pathinfo($file, PATHINFO_EXTENSION) === 'php') {
+                $fullPath = $basePath . DIRECTORY_SEPARATOR . $file;
                 try {
-                    $this->log("Loading $type file: $item", "debug");
-                    $app = $this; // Para uso nos arquivos carregados
-                    require $item;
+                    $this->log("Loading $type file: $fullPath", "debug");
+                    $app = $this;
+                    require_once $fullPath;
                 } catch (\Throwable $e) {
-                    $this->log("Failed to load $type file: $item - " . $e->getMessage(), 'error');
+                    $this->log("Failed loading $file: " . $e->getMessage(), "error");
                 }
-            } elseif (is_dir($item)) {
-                $this->load($type . '/' . basename($item));
             }
         }
 
@@ -1495,7 +1473,7 @@ class Lapa {
 
     // Método para obter path do storage
     public function storage($type = 'app') {
-        return $this->storagePaths[$type] ?? APP;
+        return $this->paths['storage'][$type] ?? $this->paths['root'];
     }
 
     /**
@@ -1804,7 +1782,7 @@ class Lapa {
             
             return $opts['json'] ? json_decode($response, true) : $response;
         } catch (\Throwable $e) {
-            Errors::render($e->getMessage());
+            $this->debug($e->getMessage(), 500, $e->getTraceAsString());
         }
     }
 
