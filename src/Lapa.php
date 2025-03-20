@@ -187,6 +187,9 @@ class Lapa {
                 $this->config['db'] = $database;
             }
 
+            // Force SSL if secure is true
+            $this->secure();
+
             // Set timezone
             date_default_timezone_set($this->config['timezone'] ?? 'UTC');
 
@@ -196,6 +199,26 @@ class Lapa {
             
         } catch (\Throwable $e) {
             $this->debug($e->getMessage(), 500, $e->getTraceAsString());
+        }
+    }
+
+    private function secure() {
+        // Se secure não está ativado, retorna
+        if (!($this->config['secure'] ?? false)) {
+            return;
+        }
+
+        // Verifica se já está em HTTPS
+        $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'
+            || isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] === 443
+            || isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https';
+
+        // Redireciona para HTTPS se necessário
+        if (!$isSecure && !headers_sent()) {
+            $url = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+            header('HTTP/1.1 301 Moved Permanently');
+            header('Location: ' . $url);
+            exit();
         }
     }
 
@@ -1473,7 +1496,7 @@ class Lapa {
 
     // Método para obter path do storage
     public function storage($type = 'app') {
-        return $this->paths['storage'][$type] ?? $this->paths['root'];
+        return $this->.paths['storage'][$type] ?? $this->paths['root'];
     }
 
     /**
@@ -1793,7 +1816,7 @@ class Lapa {
      * @return string Generated HTML documentation
      */
     public function docs($routesPath = null) {
-        $routesPath = $routesPath ?? $this->paths['routes'] ?? dirname(__DIR__) . '/routes';
+        $routesPath = $routesPath ?? $this->.paths['routes'] ?? dirname(__DIR__) . '/routes';
         $docs = [];
         
         if (!is_dir($routesPath)) {
