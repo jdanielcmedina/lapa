@@ -1769,7 +1769,7 @@ class Lapa {
      * @return string Generated HTML documentation
      */
     public function docs($routesPath = null) {
-        $routesPath = $routesPath ?? $this->.paths['routes'] ?? dirname(__DIR__) . '/routes';
+        $routesPath = $routesPath ?? $this->paths['routes'] ?? dirname(__DIR__) . '/routes';
         $docs = [];
         
         if (!is_dir($routesPath)) {
