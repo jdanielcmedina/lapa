@@ -2,8 +2,10 @@
 namespace Lapa;
 
 /**
- * Lapa Framework
- * A minimalist PHP framework for building REST APIs and web applications
+ * Lapa Framework Core Class
+ * 
+ * Core framework class that handles routing, configuration, storage,
+ * database connections, mail, plugins and error handling.
  *
  * @package     Lapa
  * @author      Daniel Medina <jdanielcmedina@gmail.com>
@@ -12,22 +14,32 @@ namespace Lapa;
  * @version     1.0.0
  */
 class Lapa {
-    private $config;
-    private $paths = [];
     /**
-     * Registered routes
+     * Framework configuration
+     * @var array
+     */
+    private $config;
+
+    /**
+     * System paths configuration
+     * @var array
+     */
+    private $paths = [];
+
+    /**
+     * Registered application routes
      * @var array
      */
     private $routes = [];
 
     /**
-     * Current route group prefix
+     * Current route group prefix for nesting routes
      * @var string
      */
     private $currentGroup = '';
 
     /**
-     * Current virtual host
+     * Current virtual host for domain routing
      * @var string
      */
     private $currentVhost = '';
@@ -39,25 +51,25 @@ class Lapa {
     public $db = null;
 
     /**
-     * Mailer instance
+     * Email handling instance
      * @var \PHPMailer\PHPMailer\PHPMailer|null
      */
     private $mailer = null;
 
     /**
-     * Storage paths configuration
+     * File storage configuration
      * @var array
      */
     private $storagePaths;
 
     /**
-     * File permissions for different storage types
+     * File permission settings
      * @var array
      */
     private $perm = [
-        'folder'  => 0755,
-        'private' => 0600,
-        'public'  => 0644
+        'folder'  => 0755,  // Default folder permissions
+        'private' => 0600,  // Restricted file permissions
+        'public'  => 0644   // Public file permissions
     ];
 
     /**
@@ -67,25 +79,25 @@ class Lapa {
     private $cache = null;
 
     /**
-     * Not found handlers by group
-     * @var array
+     * Route not found handlers by group
+     * @var array<string,callable>
      */
     private $notFoundHandlers = [];
 
     /**
-     * Wildcard route handler
+     * Fallback route handler
      * @var callable|null
      */
     private $anyHandler = null;
 
     /**
      * Current route parameters
-     * @var array
+     * @var array<string,mixed>
      */
     private $currentParams = [];
 
     /**
-     * Current HTTP status code
+     * Current HTTP response code
      * @var int
      */
     private $statusCode = 200;
@@ -142,16 +154,14 @@ class Lapa {
 
     public function __construct($config = [], $database = null) {
         try {
-            // Obter diretório raiz (um nível acima de public)
+            // Get the root path of the project
             $root = dirname(getcwd()) . DIRECTORY_SEPARATOR;
-            
-            // Removido o echo de debug
-
+        
             $this->paths = [
                 'root'    => $root,
                 'routes'  => $root . 'routes',
                 'views'   => $root . 'views',
-                'helpers' => $root . 'helpers',  // Adicionado path dos helpers
+                'helpers' => $root . 'helpers',  // Added path for helpers
                 'storage' => [
                     'cache'   => $root . 'storage/cache',
                     'logs'    => $root . 'storage/logs',
@@ -160,7 +170,7 @@ class Lapa {
                 ]
             ];
 
-            // Criar diretórios de storage se não existirem
+            // Create storage directories if they don't exist
             foreach ($this->paths['storage'] as $type => $path) {
                 if (!is_dir($path)) {
                     @mkdir($path, $this->perm['folder'], true);
@@ -170,7 +180,7 @@ class Lapa {
                 }
             }
 
-            // Adicionar log para debug do path
+            // Add log for debugging the path
             $this->log("Routes path: " . $this->paths['routes'], "debug");
 
             // Default configurations
@@ -217,17 +227,17 @@ class Lapa {
     }
 
     private function secure() {
-        // Se secure não está ativado, retorna
+        // If secure is not enabled, return
         if (!($this->config['secure'] ?? false)) {
             return;
         }
 
-        // Verifica se já está em HTTPS
+        // Check if already in HTTPS
         $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'
             || isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] === 443
             || isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https';
 
-        // Redireciona para HTTPS se necessário
+        // Redirect to HTTPS if necessary
         if (!$isSecure && !headers_sent()) {
             $url = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
             header('HTTP/1.1 301 Moved Permanently');
@@ -341,21 +351,21 @@ class Lapa {
      * @return self
      */
     public function on($route, $callback) {
-        // Separar método e rota
+        // Split route into method and path
         $parts = explode(' ', $route, 2);
         $methods = explode('|', $parts[0]);
         $path = $parts[1] ?? '';
 
-        // Construir caminho completo com grupo
+        // construct full path
         $fullPath = $path;
         if ($this->currentGroup) {
             $fullPath = rtrim($this->currentGroup, '/') . '/' . ltrim($path, '/');
         }
 
-        // Normalizar path (sempre remover barra final exceto para root '/')
+        // Normalize path (always remove trailing slash except for root '/')
         $fullPath = $fullPath === '/' ? '/' : rtrim($fullPath, '/');
 
-        // Debug apenas se não estiver em teste e debug ativado
+        // Debug only if not in test and debug is enabled
         if (!isset($this->config['test']) && ($this->config['debug'] ?? false)) {
             error_log("Route:");
             error_log("  Method: " . implode('|', $methods));
@@ -396,19 +406,19 @@ class Lapa {
      * @return self
      */
     public function group($prefix, $callback) {
-        // Guardar grupo atual
+        // save current group
         $previousGroup = $this->currentGroup;
         
-        // Adicionar novo prefixo ao grupo atual (sempre sem barra no final)
+        // Add new prefix to the current group (always without trailing slash)
         if ($prefix !== '/') {
             $prefix = rtrim($prefix, '/');
         }
         $this->currentGroup = $previousGroup ? rtrim($previousGroup, '/') . '/' . ltrim($prefix, '/') : $prefix;
            
-        // Executar callback com o novo grupo
+        // Execute callback with the new group
         $callback($this);
         
-        // Restaurar grupo anterior
+        // Restore previous group
         $this->currentGroup = $previousGroup;
 
         return $this;
@@ -527,10 +537,10 @@ class Lapa {
                 throw new \Exception("View not found: {$file}");
             }
 
-            // Extrair variáveis para o escopo local
+            // extract data to variables
             extract($data);
 
-            // Iniciar buffer de output
+            // Start output buffering
             ob_start();
 
             try {
@@ -739,7 +749,7 @@ class Lapa {
      * @return mixed Parameter value or all parameters if key is null
      */
     public function request($key = null, $method = null) {
-        // Se especificar método, retorna dados específicos
+        // If method is specified, return data from that method
         if ($method !== null) {
             $data = [];
             switch(strtolower($method)) {
@@ -756,7 +766,7 @@ class Lapa {
             return $key ? ($data[$key] ?? null) : $data;
         }
 
-        // Combina todos os dados
+        // merge GET, POST and body data
         $data = array_merge(
             $_GET ?? [], 
             $_POST ?? [],
@@ -774,18 +784,18 @@ class Lapa {
      * @return mixed Header value or all headers if key is null
      */
     public function header($key = null, $value = null) {
-        // Se key for 'destroy', remove todos os headers definidos
+        // If key is 'destroy', remove all headers
         if ($key === 'destroy') {
             header_remove();
             return $this;
         }
         
-        // Se não passar key, retorna todos os headers
+        // If key is null, return all headers
         if ($key === null) {
             return getallheaders();
         }
 
-        // Se for array, define múltiplos headers
+        // If key is an array, set multiple headers
         if (is_array($key)) {
             foreach ($key as $k => $v) {
                 $this->header($k, $v);
@@ -793,21 +803,21 @@ class Lapa {
             return $this;
         }
 
-        // Se value for null, obtém valor do header
+        // If value is null, return the header value
         if ($value === null) {
             $headers = getallheaders();
-            // Headers são case-insensitive
+            // headers are case-insensitive, so normalize the key
             $key = str_replace(' ', '-', ucwords(str_replace('-', ' ', $key)));
             return $headers[$key] ?? null;
         }
 
-        // Se value for false, remove o header
+        // If value is false, remove the header
         if ($value === false) {
             header_remove($key);
             return $this;
         }
 
-        // Define header
+        // Set the header
         header("$key: $value");
         return $this;
     }
@@ -836,12 +846,12 @@ class Lapa {
      * @return self
      */
     public function cors($origins = null, $methods = null, $headers = null) {
-        // Se CORS não estiver ativado, retorna sem fazer nada
+        // If CORS is not enabled, return
         if (!($this->config['cors']['enabled'] ?? false)) {
             return $this;
         }
 
-        // Usar valores da config se não especificados
+        // Use default values if not provided
         $origins = $origins ?? $this->config['cors']['origins'];
         $methods = $methods ?? $this->config['cors']['methods'];
         $headers = $headers ?? $this->config['cors']['headers'];
@@ -852,7 +862,7 @@ class Lapa {
             'Access-Control-Allow-Headers' => $headers
         ];
 
-        // Adicionar credentials se configurado
+        // Add credentials if enabled
         if ($this->config['cors']['credentials'] ?? false) {
             $corsHeaders['Access-Control-Allow-Credentials'] = 'true';
         }
@@ -861,9 +871,10 @@ class Lapa {
     }
 
     /**
-     * Get bearer token from Authorization header
+     * Get or set HTTP status code
      *
-     * @return string|null Bearer token or null if not found
+     * @param int|null $code HTTP status code
+     * @return self|int
      */
     public function token() {
         $header = $this->header('Authorization');
@@ -873,9 +884,15 @@ class Lapa {
         return null;
     }
 
-    // Cookies - gestão completa
+    /**
+     * Get or set cookies
+     *
+     * @param string|null $key Cookie name
+     * @param mixed|null $value Cookie value
+     * @param array $options Cookie options
+     * @return self
+     */
     public function cookie($key = null, $value = null, $options = []) {
-        // Se key for 'destroy', remove todos os cookies
         if ($key === 'destroy') {
             foreach ($_COOKIE as $k => $v) {
                 setcookie($k, '', time() - 3600, '/');
@@ -884,51 +901,44 @@ class Lapa {
             return $this;
         }
         
-        // Se não passar key, retorna todos os cookies
         if ($key === null) {
             return $_COOKIE;
         }
         
-        // Se for array, define múltiplos cookies
         if (is_array($key)) {
             foreach ($key as $k => $v) {
                 if (is_array($v) && isset($v['value'])) {
-                    // Formato: ['name' => ['value' => 'val', 'expire' => time]]
+                    // format ['name' => ['value' => 'value', 'options' => []]]
                     $this->cookie($k, $v['value'], $v);
                 } else {
-                    // Formato simples: ['name' => 'value']
+                    // format ['name' => 'value']
                     $this->cookie($k, $v, $options);
                 }
             }
             return $this;
         }
         
-        // Se value for null, obtém valor
         if ($value === null) {
             return $_COOKIE[$key] ?? null;
         }
         
-        // Se value for false, apaga o cookie
         if ($value === false) {
             setcookie($key, '', time() - 3600, '/');
             unset($_COOKIE[$key]);
             return $this;
         }
         
-        // Opções padrão para o cookie
         $defaults = [
-            'expire' => 0,           // 0 = até fechar o browser
-            'path' => '/',           // Caminho base
-            'domain' => '',          // Domínio atual
-            'secure' => false,       // Requer HTTPS
-            'httponly' => true,      // Não acessível via JavaScript
-            'samesite' => 'Lax'      // Proteção CSRF
+            'expire' => 0,           
+            'path' => '/',           
+            'domain' => '',          
+            'secure' => false,       
+            'httponly' => true,      
+            'samesite' => 'Lax'      
         ];
 
-        // Mesclar opções padrão com as fornecidas
         $opts = array_merge($defaults, $options);
         
-        // Definir cookie
         setcookie(
             $key, 
             $value, 
@@ -942,12 +952,12 @@ class Lapa {
             ]
         );
         
-        // Atualizar superglobal
         $_COOKIE[$key] = $value;
         
         return $this;
     }
 
+    
     /**
      * Session management
      *
@@ -956,22 +966,18 @@ class Lapa {
      * @return self
      */
     public function session($key = null, $value = null) {
-        // Iniciar sessão se não existir
         if (!session_id()) session_start();
         
-        // Se key for 'destroy', destrói a sessão
         if ($key === 'destroy') {
             session_destroy();
             $_SESSION = [];
             return $this;
         }
         
-        // Se não passar key, retorna toda a sessão
         if ($key === null) {
             return $_SESSION;
         }
         
-        // Se for array, define múltiplos valores
         if (is_array($key)) {
             foreach ($key as $k => $v) {
                 $_SESSION[$k] = $v;
@@ -979,18 +985,15 @@ class Lapa {
             return $this;
         }
         
-        // Se value for null, obtém valor
         if ($value === null) {
             return $_SESSION[$key] ?? null;
         }
         
-        // Se value for false, apaga a key
         if ($value === false) {
             unset($_SESSION[$key]);
             return $this;
         }
 
-        // Define valor
         $_SESSION[$key] = $value;
         return $this;
     }
@@ -1003,14 +1006,11 @@ class Lapa {
      * @return self
      */
     public function flash($key, $value = null) {
-        // Obter e apagar
         if ($value === null) {
             $value = $this->session($key);
             $this->session($key, false);
             return $value;
         }
-        
-        // Definir
         return $this->session($key, $value);
     }
 
@@ -1055,7 +1055,6 @@ class Lapa {
                         break;
                 }
 
-                // Verificar parâmetros necessários
                 if (isset($requiredParams)) {
                     foreach ($requiredParams as $param) {
                         if (!isset($dbConfig[$param])) {
@@ -1064,15 +1063,11 @@ class Lapa {
                     }
                 }
 
-                // Charset padrão
                 if (!isset($dbConfig['charset'])) {
                     $dbConfig['charset'] = 'utf8mb4';
                 }
 
-                // Conectar
                 $this->db = new \Medoo\Medoo($dbConfig);
-                
-                // Testar conexão
                 $this->db->query("SELECT 1")->fetch();
                        
             } catch (\PDOException $e) {
@@ -1087,6 +1082,7 @@ class Lapa {
     }
 
     public function mail() {
+        // if mailer is not initialized, return null
         return $this->mailer;
     }
 
@@ -1101,14 +1097,12 @@ class Lapa {
     public function cache($key, $value = null, $ttl = null) {
         $cacheFile = $this->storage('cache') . '/' . md5($key) . '.cache';
         
-        // Se value é null, é uma leitura
         if ($value === null) {
             if (!file_exists($cacheFile)) {
                 return null;
             }
             $data = json_decode(file_get_contents($cacheFile), true);
             
-            // Verificar expiração
             if ($data['expires'] < time()) {
                 unlink($cacheFile);
                 return null;
@@ -1117,7 +1111,6 @@ class Lapa {
             return $data['value'];
         }
 
-        // Se tem value, é uma escrita
         $ttl = $ttl ?? $this->config['cache']['ttl'] ?? 3600;
         $data = [
             'value' => $value,
@@ -1220,7 +1213,7 @@ class Lapa {
             return $this;
         }
 
-        $logFile = $this->.paths['storage']['logs'] . '/app.log';
+        $logFile = $this->paths['storage']['logs'] . '/app.log';
         $date = date('Y-m-d H:i:s');
         $log = "[$date] [$level] $message" . PHP_EOL;
         
@@ -1449,7 +1442,7 @@ class Lapa {
 
     // Método para obter path do storage
     public function storage($type = 'app') {
-        return $this->.paths['storage'][$type] ?? $this->paths['root'];
+        return $this->paths['storage'][$type] ?? $this->paths['root'];
     }
 
     /**
@@ -1642,7 +1635,7 @@ class Lapa {
         $longestMatch = 0;
 
         // Procura o handler mais específico baseado no grupo
-        foreach ($this->.notFoundHandlers as $groupPrefix => $groupHandler) {
+        foreach ($this->notFoundHandlers as $groupPrefix => $groupHandler) {
             if (strpos($uri, $groupPrefix) === 0) {
                 $prefixLength = strlen($groupPrefix);
                 if ($prefixLength > $longestMatch) {
